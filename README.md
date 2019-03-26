@@ -1,6 +1,7 @@
 ![LOGO](images/logo.png)
 # HyTorch <- (+ Hy PyTorch)
 PyTorch Manipulation Using the Lisp Dialect Hy
+
 ![Current Version](https://img.shields.io/badge/version-0.0.0-red.svg)
 
 Lead Maintainer: [Rafael Zamora-Resendiz](https://github.com/rz4)
@@ -15,18 +16,18 @@ computational graphs on the fly which provides an avenue for Hy to be used in
 establishing meta-programming practices in the field of deep learning.
 
 While the final goal of this project is to build a framework for DL systems to have
-access to their own coding, this intial exploration of this coding paradigm
+access to their own coding, this coding paradigm
 also shows promise at accelerating the development of new deep learning models
-while providing significant access to the low-level tensor operations at runtime.
+while providing significant access to the low-torch tensor operation at runtime.
 A common trend in current DL packages is an abundance of object-oriented abstraction with
 packages such as Keras. This only reduces transparity to the already black-box nature of NN
-systems.
+systems, and makes reproducibilty of models even more difficult.
 
 In order to better understand NN models and allow for quick iterative design
 over novel or esoteric architectures, a deep learning programmer requires access to an
-environment for the low level definitions of tensor operations and methods to quickly access network
-components for anlaysis while still providing a framework to manage large architectures. I
-beleive that the added expressability of Lisp allows for this type of programming paradigm, and
+environment for working with low level definitions of tensor operations and methods to quickly access network
+components for analysis, while still providing a framework to manage large architectures. I
+beleive that the added expressability of Lisp in combiation with PyTorch's functional API allows for this type of programming paradigm, and
 provides DL researchers an extendable framework which cannot be matched by any other
 abstracted NN packages.
 
@@ -55,10 +56,10 @@ a Jupyter notebook!
 
 I have taken the current version of [calysto_hy](https://github.com/Calysto/calysto_hy)
 and made some changes to be able to run it with the latest version of Hy (0.16.0). Even though
-this version run the kernel without major errors, he autocomplete feature is still not working
+this version runs the kernel without major errors, the autocomplete feature is still not working
 and I will be looking into fixing this in the future.
 
-You will have to install metakernel which is the base object for Calysto.
+You will also have to install metakernel which is the base object for Calysto.
 To make this kernel available to Jupyter run the following command:
 
 ```
@@ -69,10 +70,10 @@ $ cd jupyter
 
 ```
 
-### Parinfer Notebook Extension
+### ParInfer Notebook Extension
 
 Since this project is intended to showcase the power of Lisp, I found an notebook extension
-for [ParInfer](https://github.com/shaunlebron/parinfer) in this wonderful
+for [ParInfer](https://github.com/shaunlebron/parinfer) in this great Clojure Jupyter
 [repository](https://github.com/clojupyter/lein-jupyter). Many people stay away
 from Lisps due to the abundance of parenthesis, but ParaInfer takes away the need to
 manage all those annoying curves. I would recommend reading the documentation of
