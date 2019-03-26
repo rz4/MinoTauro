@@ -1,0 +1,6 @@
+jupyter/build
+jupyter/*.egg*
+jupyter/dist
+notebooks/.ipynb_checkpoints
+.DS_Store
+__pycache__
