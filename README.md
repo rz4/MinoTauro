@@ -78,10 +78,10 @@ for [ParInfer](https://github.com/shaunlebron/parinfer) in this great Clojure Ju
 from Lisps due to the abundance of parenthesis, but ParaInfer takes away the need to
 manage all those annoying curves. I would recommend reading the documentation of
 ParInfer to get a good feel on how it works. The extension can be easily turned
-on and off in the notebook, although it is *not currently available when running
-notebooks using JupyterLab*.
+on and off in the notebook, although it is **not currently available when running
+notebooks using JupyterLab**.
 
-The extension has be refactored to work with the Calysto kernel and can be
+The extension has been refactored to work with the Calysto kernel and can be
 installed and enabled using the following commands:
 
 ```
