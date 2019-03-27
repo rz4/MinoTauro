@@ -12,8 +12,9 @@ for experiments in DL meta-programming.
 
 ## Motivation
 The dynamic execution of Pytorch operations allows enough flexibity to change
-computational graphs on the fly which provides an avenue for Hy to be used in
-establishing meta-programming practices in the field of deep learning.
+computational graphs on the fly. This provides an avenue for Hy, a lisp-binding
+library for Python, to be used in establishing meta-programming practices in the
+field of deep learning.
 
 While the final goal of this project is to build a framework for DL systems to have
 access to their own coding, this coding paradigm
