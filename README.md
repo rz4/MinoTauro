@@ -6,12 +6,12 @@ PyTorch Meta-Programming Using the Lisp Dialect Hy
 
 Lead Maintainer: [Rafael Zamora-Resendiz](https://github.com/rz4)
 
-**HyTorch** is a Hy (0.16.0) library running Python (3.7) and Pytorch (1.0.1)
-for use in rapid low-level development of deep learning systems as well as
+**HyTorch** is a Hy (0.16.0) library running Python (3.7) and PyTorch (1.0.1)
+for use in rapid low-level development of deep learning (DL) systems as well as
 for experiments in DL meta-programming.
 
 ## Motivation
-The dynamic execution of Pytorch operations allows enough flexibity to change
+The dynamic execution of PyTorch operations allows enough flexibility to change
 computational graphs on the fly. This provides an avenue for Hy, a lisp-binding
 library for Python, to be used in establishing meta-programming practices in the
 field of deep learning.
@@ -22,7 +22,7 @@ also shows promise at accelerating the development of new deep learning models
 while providing significant access to low-torch tensor operations at runtime.
 A common trend in current DL packages is an abundance of object-oriented abstraction with
 packages such as Keras. This only reduces transparity to the already black-box nature of NN
-systems, and makes reproducibilty of models even more difficult.
+systems, and makes interpretability and reproducibility of models even more difficult.
 
 In order to better understand NN models and allow for quick iterative design
 over novel or esoteric architectures, a deep learning programmer requires access to an
@@ -33,6 +33,20 @@ programming paradigm, and provides DL researchers an extendable framework which 
 abstracted NN packages.
 
 ## Features
+
+### Pytorch Models as S-Expressions
+TODO
+
+### S-Expression Threading
+TODO
+
+### Pattern Matching
+TODO
+
+### S-Expression Refactoring
+TODO
+
+### Meta-Analysis of Networks
 TODO
 
 ## Installation:
@@ -72,7 +86,7 @@ $ cd jupyter
 ### ParInfer Notebook Extension
 
 Since this project is intended to showcase the power of Lisp, I found an notebook extension
-for [ParInfer](https://github.com/shaunlebron/parinfer) in this great Clojure Jupyter
+for [ParInfer](https://github.com/shaunlebron/parinfer) in this great Clojure Jupyter kernel
 [repository](https://github.com/clojupyter/lein-jupyter). Many people stay away
 from Lisps due to the abundance of parenthesis, but ParaInfer takes away the need to
 manage all those annoying curves. I would recommend reading the documentation of
@@ -89,3 +103,10 @@ $ cd jupyter
 /jupyter/$ jupyter nbextension enable calysto-parinfer/index.js --user
 
 ```
+
+## Documentation and Tutorials
+
+A extensive introduction to Hytorch and some use cases can be found in the following
+Jupyter notebooks:
+
+- [HyTorch Tutorial](jupyter/HyTorch_Tutorial.ipynb)
