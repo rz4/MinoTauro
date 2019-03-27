@@ -109,4 +109,4 @@ $ cd jupyter
 A extensive introduction to Hytorch and some use cases can be found in the following
 Jupyter notebooks:
 
-- [HyTorch Tutorial](jupyter/HyTorch_Tutorial.ipynb)
+- [HyTorch Tutorial](notebooks/HyTorch_Tutorial.ipynb)
