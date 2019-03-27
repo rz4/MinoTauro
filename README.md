@@ -1,5 +1,5 @@
 ![LOGO](images/logo.png)
-# HyTorch <- (+ Hy PyTorch)
+# (setv HyTorch (+ Hy PyTorch))
 PyTorch Meta-Programming Using the Lisp Dialect Hy
 
 ![Current Version](https://img.shields.io/badge/version-0.0.0-red.svg)
