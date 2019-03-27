@@ -1,6 +1,6 @@
 ![LOGO](images/logo.png)
 # HyTorch <- (+ Hy PyTorch)
-PyTorch Manipulation Using the Lisp Dialect Hy
+PyTorch Meta-Programming Using the Lisp Dialect Hy
 
 ![Current Version](https://img.shields.io/badge/version-0.0.0-red.svg)
 
@@ -54,16 +54,14 @@ a Jupyter notebook!
 
 ### Calysto - Hy IPython Kernel
 
-I have taken the current version of [calysto_hy](https://github.com/Calysto/calysto_hy)
+I've taken the current version of [calysto_hy](https://github.com/Calysto/calysto_hy)
 and made some changes to be able to run it with the latest version of Hy (0.16.0). Even though
 this version runs the kernel without major errors, the autocomplete feature is still not working
 and I will be looking into fixing this in the future.
 
-You will also have to install metakernel which is the base object for Calysto.
 To make this kernel available to Jupyter run the following command:
 
 ```
-$ pip3 install metakernel
 $ cd jupyter
 /jupyter/$ python3 setup.py install
 /jupyter/$ python3 -m calysto_hy install --sys-prefix
