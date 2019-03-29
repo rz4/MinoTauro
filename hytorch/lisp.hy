@@ -37,11 +37,16 @@
 
 ; cdr
 (defun cdr (x)
-  (hy.models.HyExpression (list (rest x))))
+  (cond [(isinstance x hy.models.HyExpression)
+         (hy.models.HyExpression (list (rest x)))]
+        [(isinstance x hy.models.HyList)
+         (hy.models.HyList (list (rest x)))]))
+
 
 ; atom?
 (defun atom? (x)
-  (if (= (type x) hy.models.HyExpression) False True))
+  (if (or (isinstance x hy.models.HyExpression)
+          (isinstance x hy.models.HyList)) False True))
 
 ; cons
 (defun cons (x y)
@@ -85,11 +90,16 @@
 ; printlisp - pretty Lisp print on single line
 (defun printlisp (x &optional [flag 0])
   (if (or (= flag 0) (= flag 1))
-    (print "(" :end "") None)
+    (cond [(isinstance x hy.models.HyExpression) (print "(" :end "")]
+          [(isinstance x hy.models.HyList) (print "[" :end "")])
+    None)
   (if (not (atom? (car x)))
-    (printlisp (car x) 1)
+    (if (isinstance (car x) hy.models.HyList)
+      (do (printlisp (car x) 1))
+      (printlisp (car x) 1))
     (print (car x) :end ""))
   (if (= '() (cdr x))
-    (print ")" :end "")
+    (cond [(isinstance x hy.models.HyExpression) (print ")" :end "")]
+          [(isinstance x hy.models.HyList) (print "]" :end "")])
     (do (print " " :end "") (printlisp (cdr x) 2)))
   (if (= flag 0) (print "")))

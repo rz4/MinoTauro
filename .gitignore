@@ -1,6 +1,10 @@
 jupyter/build
 jupyter/*.egg*
 jupyter/dist
-notebooks/.ipynb_checkpoints
+*.ipynb_checkpoints
 .DS_Store
 __pycache__
+Development.ipynb
+build
+dist
+hytorch.egg*
