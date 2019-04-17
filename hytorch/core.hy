@@ -1,11 +1,14 @@
 ; Imports
-(import [hy.models [*]])
-(import torch)
+(import [hy.models [HyList HySymbol]])
+(require [hytorch.thread [*]])
 
-; forward - function runs forward propagation using the network operations defined in nn-ops.
-; tensors are defined in nn-ops as t'n' where n is the index of the tensor in nn-ws.
-(defn forward [nn-ops nn-ws &optional [training False]]
-  (setv training trianing)
-  (for [x (range (len nn-ws))]
-    (eval (cons 'setv `(~(HySymbol (+ "t" (str x))) ~(quote (get nn-ws x))))))
-  (eval nn-ops))
+; |gensym : generates list of HySymbols for list
+(defn |gensym [exprs namespace]
+  (HyList (lfor i (range (len exprs))
+            (HySymbol (+ namespace (str i))))))
+
+; \setv : sets list of expressions to list of symbols
+(defmacro |setv [symbs exprs]
+  (if (!= (len `(~@symbs)) (len `(~@exprs)))
+    (raise (ValueError "|setv: Length of Symbols and Expressions must match.")))
+  `(|-> ~exprs ~symbs quote unquote-splice setv quasiquote eval))
