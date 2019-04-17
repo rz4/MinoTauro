@@ -35,8 +35,71 @@ abstracted NN packages.
 ## Features
 
 ### Pytorch Models as S-Expressions
-TODO
+Defining network components using S-expressions allows for modular design, quick iterative
+refactoring, and manipulation of network code using macros. Here is a short example
+of defining a computational graph in PyTorch and running forward propagation using
+randomly initialized weight tensors.
 
+```scheme
+; Importing Hytorch Tools and PyTorch
+(import [hytorch.core [|gensym]])
+(require [hytorch.core [|setv]])
+(require [hytorch.thread [*]])
+(import [hytorch.lisp [printlisp]])
+(import torch)
+(import [torch.nn.functional :as tfun])
+
+; Checking for available cuda device
+(setv device (torch.device (if (.is_available torch.cuda) "cuda:0" "cpu")))
+
+; Defining leaf tensors
+(setv leaf-tensor-defs '[(torch.empty [10] :dtype torch.float32 :requires-grad True)
+                         (torch.empty [10 10] :dtype torch.float32 :requires-grad True)
+                         (torch.empty [10] :dtype torch.float32 :requires-grad True)
+                         (torch.empty [1 10] :dtype torch.float32 :requires-grad True)
+                         (torch.empty [1] :dtype torch.float32 :requires-grad True)])
+
+; Generate symbols for tensor-defs
+(setv leaf-tensors (|gensym leaf-tensor-defs "L_"))
+
+; Define assign expressions for leafs
+(setv create-leafs `(|setv ~leaf-tensors ~leaf-tensor-defs))
+
+; Define intialization procedures
+(setv tensor-inits '[(-> torch.nn.init.normal (.to device))
+                     (-> torch.nn.init.normal (.to device))
+                     (-> torch.nn.init.normal (.to device))
+                     (-> torch.nn.init.normal (.to device))
+                     (-> torch.nn.init.normal (.to device))])
+
+; Define init procedure application to leafs
+(setv init-leafs (macroexpand `(|-> ~leaf-tensors ~tensor-inits)))
+
+; Generate symbols for initialized weights
+(setv w-tensors (|gensym leaf-tensor-defs "W_"))
+
+; Define assign expressions for weights
+(setv init-weights `(|setv ~w-tensors ~init-leafs))
+
+; Defining a simple feed-forward NN as an S-Expression
+(setv nn-def '(-> W_0
+                  (tfun.linear W_1 W_2)
+                  tfun.sigmoid
+                  (tfun.linear W_3 W_4)
+                  tfun.sigmoid))
+
+; Define network parameter init procedure
+(defmacro init-params []
+  '(do  (eval create-leafs)
+        (eval init-weights)))
+
+; Initiate Parameters
+(init-params)
+
+; Running Forward Prop
+(setv out (eval nn-def))
+
+```
 ### S-Expression Threading
 TODO
 
