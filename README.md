@@ -37,10 +37,10 @@ abstracted NN packages.
 ### Pytorch Models as S-Expressions
 Defining network components using S-expressions allows for modular design, quick iterative
 refactoring, and manipulation of network code using macros. Here is a short example
-of defining a computational graph in PyTorch and running forward propagation using
+of defining a computational graph using HyTorch tools and running forward propagation with
 randomly initialized weight tensors.
 
-```scheme
+```hy
 ; Importing Hytorch Tools and PyTorch
 (import [hytorch.core [|gensym]])
 (require [hytorch.core [|setv]])
@@ -101,16 +101,47 @@ randomly initialized weight tensors.
 
 ```
 ### S-Expression Threading
-TODO
+HyTorch contains custom threading macros to help define more complex network
+architectures.
+
+Broadcast Threading:
+```hy
+; Head Broadcast Threading
+(printlisp (macroexpand '(*-> [input1 input2] tfun.matmul (tfun.add bias) [tfun.sigmoid tfun.relu])))
+
+; Tail Broadcast Threading
+(printlisp (macroexpand '(*->> [input1 input2] tfun.matmul (tf.add bias) [tfun.sigmoid tfun.relu])))
+```
+Output:
+```
+[(tfun.sigmoid (tfun.add (tfun.matmul input1 input2) bias)) (tfun.relu (tfun.add (tfun.matmul input1 input2) bias))]
+[(tfun.sigmoid (tf.add bias (tfun.matmul input1 input2))) (tfun.relu (tf.add bias (tfun.matmul input1 input2)))]
+```
+List Inline Threading:
+```hy
+; Head List Inline Threading
+(printlisp (macroexpand '(|-> [input1 input2] [(tfun.linear w1 b1) (tf.linear w2 b2)] tfun.sigmoid)))
+
+; Tail List Inline Threading
+(printlisp (macroexpand '(|->> [input1 input2] [(tfun.linear w1 b1) (tf.linear w2 b2)] tfun.sigmoid)))
+```
+Output:
+```
+[(tfun.sigmoid (tfun.linear input1 w1 b1)) (tfun.sigmoid (tf.linear input2 w2 b2))]
+[(tfun.sigmoid (tfun.linear w1 b1 input1)) (tfun.sigmoid (tf.linear w2 b2 input2))]
+```
 
 ### Pattern Matching
-TODO
+S-expression notation allows for pattern-matching over network definitions.
+
+```hy
+```
 
 ### S-Expression Refactoring
-TODO
+Quick and simple architectures refactoring without rewriting network code.
 
-### Meta-Analysis of Networks
-TODO
+```hy
+```
 
 ## Installation:
 
