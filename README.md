@@ -17,25 +17,26 @@ library for Python, to be used in establishing meta-programming practices in the
 field of deep learning.
 
 While the final goal of this project is to build a framework for DL systems to have
-access to their own coding, this coding paradigm
-also shows promise at accelerating the development of new deep learning models
-while providing significant access to low-torch tensor operations at runtime.
-A common trend in current DL packages is an abundance of object-oriented abstraction with
-packages such as Keras. This only reduces transparity to the already black-box nature of NN
-systems, and makes interpretability and reproducibility of models even more difficult.
+access to their own coding, this coding paradigm also shows promise at accelerating
+the development of new deep learning models while allowing significant manipulation
+of low-torch tensor operations at runtime. A common trend in current DL packages is
+an abundance of object-oriented abstraction with packages such as Keras. This only reduces
+transparity to the already black-box nature of NN systems, and makes interpretability
+ and reproducibility of models even more difficult.
 
 In order to better understand NN models and allow for quick iterative design
 over novel or esoteric architectures, a deep learning programmer requires access to an
-environment that allows low-level definition of tensor graphs and provides methods to quickly access network
-components for analysis, while still providing a framework to manage large architectures. I
-believe that the added expressability of Lisp in combination with PyTorch's functional API allows for this type of
-programming paradigm, and provides DL researchers an extendable framework which cannot be matched by any other
-abstracted NN packages.
+environment that allows low-level definition of tensor graphs and provides methods
+to quickly access network components for analysis, while still providing a framework
+to manage large architectures. I believe that the added expressability of Lisp
+in combination with PyTorch's functional API allows for this type of programming
+paradigm, and provides DL researchers an extendable framework which cannot be
+matched by any other abstracted NN packages.
 
 ## Features
 
-### Pytorch Models as S-Expressions
-Defining network components using S-expressions allows for modular design, quick iterative
+### Pytorch Models as Hy-Expressions
+Defining network components using Hy-expressions allows for modular design, quick iterative
 refactoring, and manipulation of network code using macros. Here is a short example
 of defining a computational graph using HyTorch tools and running forward propagation with
 randomly initialized weight tensors.
@@ -100,17 +101,17 @@ randomly initialized weight tensors.
 (setv out (eval nn-def))
 
 ```
-### S-Expression Threading
+### Hy-Expression Threading
 HyTorch contains custom threading macros to help define more complex network
 architectures.
 
 Broadcast Threading:
 ```hy
 ; Head Broadcast Threading
-(printlisp (macroexpand '(*-> [input1 input2] tfun.matmul (tfun.add bias) [tfun.sigmoid tfun.relu])))
+(print-lisp (macroexpand '(*-> [input1 input2] tfun.matmul (tfun.add bias) [tfun.sigmoid tfun.relu])))
 
 ; Tail Broadcast Threading
-(printlisp (macroexpand '(*->> [input1 input2] tfun.matmul (tf.add bias) [tfun.sigmoid tfun.relu])))
+(print-lisp (macroexpand '(*->> [input1 input2] tfun.matmul (tf.add bias) [tfun.sigmoid tfun.relu])))
 ```
 Output:
 ```
@@ -120,10 +121,10 @@ Output:
 List Inline Threading:
 ```hy
 ; Head List Inline Threading
-(printlisp (macroexpand '(|-> [input1 input2] [(tfun.linear w1 b1) (tf.linear w2 b2)] tfun.sigmoid)))
+(print-lisp (macroexpand '(|-> [input1 input2] [(tfun.linear w1 b1) (tf.linear w2 b2)] tfun.sigmoid)))
 
 ; Tail List Inline Threading
-(printlisp (macroexpand '(|->> [input1 input2] [(tfun.linear w1 b1) (tf.linear w2 b2)] tfun.sigmoid)))
+(print-lisp (macroexpand '(|->> [input1 input2] [(tfun.linear w1 b1) (tf.linear w2 b2)] tfun.sigmoid)))
 ```
 Output:
 ```
@@ -132,15 +133,62 @@ Output:
 ```
 
 ### Pattern Matching
-S-expression notation allows for pattern-matching over network definitions.
+Hy-expression notation allows for pattern-matching over network definitions.
 
 ```hy
+; Import Pattern Matching Functions and Macros
+(import [hytorch.match [pat-match? pat-find]])
+(require [hytorch.match [pat-refract]])
+
+; pat-match? expr pattern
+(pat-match? '(print (+ (+ 1 2) 3)) '(print (+ :HyExpression 3)))
+
+; Match by parent-class association (ex. hy.model.HyExpression child of hy)
+(pat-match? '(print (+ (+ 1 2) 3)) '(print (+ :hy 3)))
+
+; Match by sub classes (ex. Hy.models)
+(pat-match? '(print (+ (+ 1 2) 3)) '(print (+ :hy:models 3)))
+
+; Network defintion
+(setv nn-def '(-> W_0
+                  (tfun.linear W_1 W_2)
+                  tfun.sigmoid
+                  (tfun.linear W_3 W_4)
+                  tfun.sigmoid))
+
+; Pattern match search over expanded defintion and return first 2
+(for [match (pat-find (macroexpand nn-def) '(tfun.sigmoid :HyExpression) :n 2)]
+     (print "Match:")
+     (print-lisp match))
+
+```
+Output:
+```
+Match:
+(tfun.sigmoid (tfun.linear (tfun.sigmoid (tfun.linear W_0 W_1 W_2)) W_3 W_4))
+Match:
+(tfun.sigmoid (tfun.linear W_0 W_1 W_2))
 ```
 
-### S-Expression Refactoring
+### Hy-Expression Refactoring
 Quick and simple architectures refactoring without rewriting network code.
 
 ```hy
+; Network defintion
+(setv nn-def '(-> W_0
+                  (tfun.linear W_1 W_2)
+                  tfun.sigmoid
+                  (tfun.linear W_3 W_4)
+                  tfun.sigmoid))
+
+; Refactor model definition
+(print-lisp (macroexpand `(pat-refract ~(macroexpand nn-def) (tfun.sigmoid tfun.relu)
+                                                             (W_2 B_2)
+                                                             (W_4 B_4))))
+```
+Output:
+```
+(tfun.relu (tfun.linear (tfun.relu (tfun.linear W_0 W_1 B_2)) W_3 B_4))
 ```
 
 ## Installation:
@@ -200,7 +248,7 @@ $ cd jupyter
 
 ## Documentation and Tutorials
 
-A extensive introduction to Hytorch and some use cases can be found in the following
+An introduction to Hytorch and some use cases can be found in the following
 Jupyter notebooks:
 
 - [HyTorch Tutorial](notebooks/HyTorch_Tutorial.ipynb)
