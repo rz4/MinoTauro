@@ -2,11 +2,11 @@
 # (setv HyTorch (+ Hy PyTorch))
 PyTorch Meta-Programming Using the Lisp Dialect Hy
 
-![Current Version](https://img.shields.io/badge/version-0.0.0-red.svg)
+![Current Version](https://img.shields.io/badge/version-0.0.1-red.svg)
 
 Lead Maintainer: [Rafael Zamora-Resendiz](https://github.com/rz4)
 
-**HyTorch** is a Hy (0.16.0) library running Python (3.7) and PyTorch (1.0.1)
+**HyTorch** is a Hy (0.17.0) library running Python (3.7) and PyTorch (1.0.1)
 for use in rapid low-level development of deep learning (DL) systems as well as
 for experiments in DL meta-programming.
 
@@ -36,160 +36,169 @@ matched by any other abstracted NN packages.
 ## Features
 
 ### Pytorch Models as Hy-Expressions
-Defining network components using Hy-expressions allows for modular design, quick iterative
-refactoring, and manipulation of network code using macros. Here is a short example
-of defining a computational graph using HyTorch tools and running forward propagation with
-randomly initialized weight tensors.
+Defining models using Hy-Expressions allows for modular design, quick iterative
+refactoring, and manipulation of model code using macros. Here is a short example
+of defining a single layer feed forward neural network using HyTorch tools and training
+on the model on dummy data.
 
 ```hy
-; Importing Hytorch Tools and PyTorch
-(import [hytorch.core [|gensym]])
-(require [hytorch.core [|setv]])
-(require [hytorch.thread [*]])
-(import [hytorch.lisp [printlisp]])
-(import torch)
-(import [torch.nn.functional :as tfun])
+; Imports
+(import torch
+        [torch.nn.functional :as F]
+        [torch.nn [Parameter]]
+        [torch.optim [Adam]])
 
-; Checking for available cuda device
-(setv device (torch.device (if (.is_available torch.cuda) "cuda:0" "cpu")))
+; Macros
+(require [hytorch [*]] ; defmodule
+         [hytorch.thread [*]] ; Threading macros :{->,->>,*->,...}
+         [hy.contrib.walk [let]])
 
-; Defining leaf tensors
-(setv leaf-tensor-defs '[(torch.empty [10] :dtype torch.float32 :requires-grad True)
-                         (torch.empty [10 10] :dtype torch.float32 :requires-grad True)
-                         (torch.empty [10] :dtype torch.float32 :requires-grad True)
-                         (torch.empty [1 10] :dtype torch.float32 :requires-grad True)
-                         (torch.empty [1] :dtype torch.float32 :requires-grad True)])
+;; Linear Function Module
+(defmodule Linear [x w b]
+  (-> x (@ w) (+ b)))
 
-; Generate symbols for tensor-defs
-(setv leaf-tensors (|gensym leaf-tensor-defs "L_"))
+;; Linear Module Initializer
+(defn n/Linear [f-in f-out]
+  (Linear :w (-> (torch.empty (, f-in f-out))
+                 (.normal_ :mean 0 :std 1.0)
+                 (Parameter :requires_grad True))
+          :b (-> (torch.empty (, f-out))
+                 (.normal_ :mean 0 :std 1.0)
+                 (Parameter :requires_grad True))))
 
-; Define assign expressions for leafs
-(setv create-leafs `(|setv ~leaf-tensors ~leaf-tensor-defs))
+;; Single-layer Feed Forward Neural Network
+(defmodule FeedForwardNN [x fc-in act fc-out]
+  (-> x fc-in act fc-out))
 
-; Define intialization procedures
-(setv tensor-inits '[(-> torch.nn.init.normal (.to device))
-                     (-> torch.nn.init.normal (.to device))
-                     (-> torch.nn.init.normal (.to device))
-                     (-> torch.nn.init.normal (.to device))
-                     (-> torch.nn.init.normal (.to device))])
+;; FFNN Module Initializer
+(defn n/FeedForwardNN [nb-inputs nb-hidden nb-outputs]
+  (FeedForwardNN :fc-in (n/Linear nb-inputs nb-hidden)
+                 :fc-out (n/Linear nb-hidden nb-outputs)
+                 :act torch.sigmoid))
 
-; Define init procedure application to leafs
-(setv init-leafs (macroexpand `(|-> ~leaf-tensors ~tensor-inits)))
+;; main -
+(defmain [&rest _]
 
-; Generate symbols for initialized weights
-(setv w-tensors (|gensym leaf-tensor-defs "W_"))
+  (print "Loading Model + Data...")
+  (let [nb-inputs 10 nb-hidden 32 nb-outputs 1]
+    ; Define Model + Optimizer
+    (setv model (n/FeedForwardNN nb-inputs nb-hidden nb-outputs)
+          optimizer (Adam (.parameters model) :lr 0.001 :weight_decay 1e-5))
 
-; Define assign expressions for weights
-(setv init-weights `(|setv ~w-tensors ~init-leafs))
+    ; Generate Dummy Data
+    (let [batch-size 100]
+      (setv x (-> (torch.empty (, batch-size nb-inputs))
+                  (.normal_ :mean 0 :std 1.0))
 
-; Defining a simple feed-forward NN as an S-Expression
-(setv nn-def '(-> W_0
-                  (tfun.linear W_1 W_2)
-                  tfun.sigmoid
-                  (tfun.linear W_3 W_4)
-                  tfun.sigmoid))
+            y (torch.ones (, batch-size nb-outputs)))))
 
-; Define network parameter init procedure
-(defmacro init-params []
-  '(do  (eval create-leafs)
-        (eval init-weights)))
+  ; Train
+  (let [epochs 100]
+    (print "Training...")
+    (for [epoch (range epochs)]
 
-; Initiate Parameters
-(init-params)
+      ; Forward
+      (setv y-pred (model x))
+      (setv loss (F.binary_cross_entropy_with_logits y-pred y))
+      (print (.format "Epoch: {epoch} Loss: {loss}" :epoch epoch :loss loss))
 
-; Running Forward Prop
-(setv out (eval nn-def))
-
+      ; Backward
+      (.zero_grad optimizer)
+      (.backward loss)
+      (.step optimizer))))
 ```
+
+HyTorch works alongside PyTorch abstractions and allows for a more functional style of
+programming computational graphs, and adds macro programming through threading functions to define more
+complex models. In the above example, we show the use of the macro `defmodule` which takes the
+arguments and defines a PyTorch `Module` object. The `components` used by the module during forward
+propagation are defined in the argument list. The first expression following the argument list
+defines the `forward procedure`. Thus, defining a PyTorch module takes the following form:
+
+```hy
+(defmodule module-name [component-0 ...] forward-procedure)
+```
+
+While PyTorch's module system uses a object oriented approach, HyTorch's abstractions allows
+for more functional manipulation by only using locally stored variables if defined when instantiating
+a new module object. For example, the `n/Linear` function creates a new `Linear` module with custom
+default and persistent tensors, weight `w` and bias `b`. If arguments `w` or `b` are not provided
+during the forward pass of `Linear`, then the default values are used.
+
 ### Hy-Expression Threading
 HyTorch contains custom threading macros to help define more complex network
-architectures.
+architectures. Threading macros are common to other functional lisp langauges such as Clojure.
+The simplest comes in the form of the thread first macro `->`, which inserts each expression into the
+next expression’s first argument place. The compliment of this macro which inserts the expressions
+into the last argument place is `->>`. The following are various threading macros available in
+HyTorch:
 
-Broadcast Threading:
+#### Broadcast-thread first macro:
+Variation of the thread first macro which threads listed forms as
+the first n arguments in the next form.
+Example:
+``` hy
+(*-> [x y] +)
+
+; Returns
+(+ x y)
+```
+When form precedes list of forms broadcast preceding forms to each form in list.
+Example:
+``` hy
+(*-> x [inc dec])
+
+; Returns
+[(inc x) (dec x)]
+```
+
+#### Inline-thread first macro:
+Variation of the thread first macro which threads listed forms in parallel.
+Example:
+``` hy
+(|-> [x y] [inc dec])
+
+; Returns
+[(inc x) (dec y)]
+```
+If list of forms precedes a single form, thread form along each branch.
+Example:
+``` hy
+(|-> [x y] (+ 1))
+
+; Returns
+[(+ x 1) (+ y 1)]
+```
+
+#### Set-thread first macro:
+Variation of the thread first macro which stores the result at each form thread.
+Used when its more effcient to pass pointer of the evaluated form to next form operation instead
+of unevaluated form. Gensym used for variable name to prvent namespace collisions.
+Example:
 ```hy
-; Head Broadcast Threading
-(print-lisp (macroexpand '(*-> [input1 input2] tfun.matmul (tfun.add bias) [tfun.sigmoid tfun.relu])))
+(=-> (+ x 1) incr)
 
-; Tail Broadcast Threading
-(print-lisp (macroexpand '(*->> [input1 input2] tfun.matmul (tf.add bias) [tfun.sigmoid tfun.relu])))
+; Returns
+(do (setv g!123 (+ x 1)) (setv g!123 (incr g!123)) g!123)
 ```
-Output:
-```
-[(tfun.sigmoid (tfun.add (tfun.matmul input1 input2) bias)) (tfun.relu (tfun.add (tfun.matmul input1 input2) bias))]
-[(tfun.sigmoid (tf.add bias (tfun.matmul input1 input2))) (tfun.relu (tf.add bias (tfun.matmul input1 input2)))]
-```
-List Inline Threading:
+
+#### Conditional-thread first macro:
+Variation of the thread first macro which operates as cond-> in clojure.
+Example:
 ```hy
-; Head List Inline Threading
-(print-lisp (macroexpand '(|-> [input1 input2] [(tfun.linear w1 b1) (tf.linear w2 b2)] tfun.sigmoid)))
+(cond-> x True incr (even? 2) incr)
 
-; Tail List Inline Threading
-(print-lisp (macroexpand '(|->> [input1 input2] [(tfun.linear w1 b1) (tf.linear w2 b2)] tfun.sigmoid)))
-```
-Output:
-```
-[(tfun.sigmoid (tfun.linear input1 w1 b1)) (tfun.sigmoid (tf.linear input2 w2 b2))]
-[(tfun.sigmoid (tfun.linear w1 b1 input1)) (tfun.sigmoid (tf.linear w2 b2 input2))]
+; Returns
+(if True
+  (if (even? 2)
+    (incr (incr x)))
+    (incr x))
+ x)
 ```
 
-### Pattern Matching
-Hy-expression notation allows for pattern-matching over network definitions.
-
-```hy
-; Import Pattern Matching Functions and Macros
-(import [hytorch.match [pat-match? pat-find]])
-(require [hytorch.match [pat-refract]])
-
-; pat-match? expr pattern
-(pat-match? '(print (+ (+ 1 2) 3)) '(print (+ :HyExpression 3)))
-
-; Match by parent-class association (ex. hy.model.HyExpression child of hy)
-(pat-match? '(print (+ (+ 1 2) 3)) '(print (+ :hy 3)))
-
-; Match by sub classes (ex. Hy.models)
-(pat-match? '(print (+ (+ 1 2) 3)) '(print (+ :hy:models 3)))
-
-; Network defintion
-(setv nn-def '(-> W_0
-                  (tfun.linear W_1 W_2)
-                  tfun.sigmoid
-                  (tfun.linear W_3 W_4)
-                  tfun.sigmoid))
-
-; Pattern match search over expanded defintion and return first 2
-(for [match (pat-find (macroexpand nn-def) '(tfun.sigmoid :HyExpression) :n 2)]
-     (print "Match:")
-     (print-lisp match))
-
-```
-Output:
-```
-Match:
-(tfun.sigmoid (tfun.linear (tfun.sigmoid (tfun.linear W_0 W_1 W_2)) W_3 W_4))
-Match:
-(tfun.sigmoid (tfun.linear W_0 W_1 W_2))
-```
-
-### Hy-Expression Refactoring
-Quick and simple architectures refactoring without rewriting network code.
-
-```hy
-; Network defintion
-(setv nn-def '(-> W_0
-                  (tfun.linear W_1 W_2)
-                  tfun.sigmoid
-                  (tfun.linear W_3 W_4)
-                  tfun.sigmoid))
-
-; Refactor model definition
-(print-lisp (macroexpand `(pat-refract ~(macroexpand nn-def) (tfun.sigmoid tfun.relu)
-                                                             (W_2 B_2)
-                                                             (W_4 B_4))))
-```
-Output:
-```
-(tfun.relu (tfun.linear (tfun.relu (tfun.linear W_0 W_1 B_2)) W_3 B_4))
-```
+It's important to note that all threading macros provided in HyTorch macroexpand each form
+prior to threading into next expression. As standard, the "last" version of each macro is the
+symbol plus an added `>` (i.e `*->>`, `|->>`, etc.)
 
 ## Installation:
 
@@ -251,4 +260,4 @@ $ cd jupyter
 An introduction to Hytorch and some use cases can be found in the following
 Jupyter notebooks:
 
-- [HyTorch Tutorial](notebooks/HyTorch_Tutorial.ipynb)
+- [HyTorch Tutorial](notebooks/HyTorch_Tutorial-old.ipynb)

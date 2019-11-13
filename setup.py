@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-__author__ = 'Rafael Zamora-Resendiz, rz4@hood.edu'
+__author__ = 'Rafael Zamora-Resendiz, rzamoraresendiz@protonmail.com'
 
 from setuptools import setup, find_packages
 
