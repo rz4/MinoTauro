@@ -7,8 +7,8 @@ PyTorch Meta-Programming Using the Lisp Dialect Hy
 Lead Maintainer: [Rafael Zamora-Resendiz](https://github.com/rz4)
 
 **HyTorch** is a Hy (0.17.0) library running Python (3.7) and PyTorch (1.0.1)
-for use in rapid low-level development of deep learning (DL) systems as well as
-for experiments in DL meta-programming.
+for use in rapid low-level development of differential programming systems as well as
+for experiments in deep learning meta-programming.
 
 ## Motivation
 The dynamic execution of PyTorch operations allows enough flexibility to change
@@ -16,7 +16,7 @@ computational graphs on the fly. This provides an avenue for Hy, a lisp-binding
 library for Python, to be used in establishing meta-programming practices in the
 field of deep learning.
 
-While the final goal of this project is to build a framework for DL systems to have
+While the final goal of this project is to build a framework for Deep Learning (DL) systems to have
 access to their own coding, this coding paradigm also shows promise at accelerating
 the development of new deep learning models while allowing significant manipulation
 of low-torch tensor operations at runtime. A common trend in current DL packages is
@@ -108,8 +108,8 @@ on the model on dummy data.
       (.step optimizer))))
 ```
 
-HyTorch works alongside PyTorch abstractions and allows for a more functional style of
-programming computational graphs, and adds macro programming through threading functions to define more
+HyTorch works alongside PyTorch abstractions allowing for a more functional style of
+programming computational graphs. It also adds macro programming primitives through threading functions to define more
 complex models. In the above example, we show the use of the macro `defmodule` which takes the
 arguments and defines a PyTorch `Module` object. The `components` used by the module during forward
 propagation are defined in the argument list. The first expression following the argument list
