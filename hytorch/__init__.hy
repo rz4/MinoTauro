@@ -5,8 +5,6 @@
 ; some
 
 ;-----MODULES------
-(eval-and-compile
-  (import [torch.nn [Module]]))
 
 ;; Module Definition
 (defmacro defmodule [module-name components forward &rest funcs]

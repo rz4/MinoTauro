@@ -172,8 +172,8 @@ Example:
 
 #### Set-thread first macro:
 Variation of the thread first macro which stores the result at each form thread.
-Used when its more effcient to pass pointer of the evaluated form to next form operation instead
-of unevaluated form. Gensym used for variable name to prvent namespace collisions.
+Used when its more efficient to pass pointer of the evaluated form to next form operation instead
+of unevaluated form. Gensym used for variable name to prevent namespace collisions.
 Example:
 ```hy
 (=-> (+ x 1) incr)
@@ -183,7 +183,7 @@ Example:
 ```
 
 #### Conditional-thread first macro:
-Variation of the thread first macro which operates as cond-> in clojure.
+Variation of the thread first macro which operates as cond-> in Clojure.
 Example:
 ```hy
 (cond-> x True incr (even? 2) incr)
