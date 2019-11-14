@@ -39,7 +39,7 @@ matched by any other abstracted NN packages.
 Defining models using Hy-Expressions allows for functional design, quick iterative
 refactoring, and manipulation of model code using macros. Here is a short example
 of defining a single layer feed forward neural network using HyTorch tools and training
-on the model on dummy data.
+the model on dummy data.
 
 ```hy
 ; Imports
