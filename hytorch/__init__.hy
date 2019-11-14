@@ -7,7 +7,7 @@
 ;-----MODULES------
 
 ;; Module Definition
-(defmacro defmodule [module-name components forward &rest funcs]
+(defmacro defsigmod [module-name components &rest forward]
 
   ; Generate arg expr
   (setv args (lfor c components [c None]))
@@ -30,8 +30,40 @@
            ~init-body)
          (defn forward [self &optional ~@args]
            ~dispatcher
-           ~forward)
-         ~@funcs)))
+           (do ~@forward)))))
+
+;; Anonymous Module Definition
+(defmacro sigmod [components &rest forward]
+
+  ; Generate arg expr
+  (setv args (lfor c components [c None]))
+
+  ; Generate init-body
+  (setv init-body '(setv))
+  (for [c components] (+= init-body `((. self ~c) ~c)))
+
+  ; Generate dispatcher
+  (setv dispatcher '(setv))
+  (for [c components] (+= dispatcher `(~c (if (none? ~c) (. self ~c) ~c))))
+
+  ; Macro Expand Forward
+  (setv forward (macroexpand forward))
+
+  `(do (import [torch.nn [Module]])
+       ((type "" (, Module)
+         { "__init__"
+           (fn [self &optional ~@args]
+             (.__init__ (super (type self) self))
+             ~init-body)
+           "forward"
+           (fn [self &optional ~@args]
+             ~dispatcher
+             (do ~@forward))}))))
+
+;;
+(defmacro bind [sig &rest args]
+  (setv var (gensym))
+  `(do (setv ~var ~sig) (.__init__ ~var ~@args) ~var))
 
 ;-----OTHER------
 

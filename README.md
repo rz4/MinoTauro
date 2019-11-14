@@ -2,33 +2,33 @@
 # (setv HyTorch (+ Hy PyTorch))
 PyTorch Meta-Programming Using the Lisp Dialect Hy
 
-![Current Version](https://img.shields.io/badge/version-0.0.1-red.svg)
+![Current Version](https://img.shields.io/badge/version-0.0.2-red.svg)
 
 Lead Maintainer: [Rafael Zamora-Resendiz](https://github.com/rz4)
 
 **HyTorch** is a Hy (0.17.0) library running Python (3.7) and PyTorch (1.0.1)
-for use in rapid low-level development of differential programming systems as well as
+for use in rapid low-level development of differential programs as well as
 for experiments in deep learning meta-programming.
 
 ## Motivation
 The dynamic execution of PyTorch operations allows enough flexibility to change
 computational graphs on the fly. This provides an avenue for Hy, a lisp-binding
 library for Python, to be used in establishing meta-programming practices in the
-field of deep learning.
+field of deep learning (DL).
 
-While the final goal of this project is to build a framework for Deep Learning (DL) systems to have
-access to their own coding, this coding paradigm also shows promise at accelerating
-the development of new deep learning models while allowing significant manipulation
+While the final goal of this project is to build a framework for DL systems to have
+access to their code, this coding paradigm also shows promise at accelerating
+the development of new differential models while allowing significant manipulation
 of low-torch tensor operations at runtime. A common trend in current DL packages is
 an abundance of object-oriented abstraction with packages such as Keras. This only reduces
-transparity to the already black-box nature of NN systems, and makes interpretability
- and reproducibility of models even more difficult.
+transparency to the already black-box nature of NN systems, and makes interpretability
+and reproducibility of models more difficult.
 
-In order to better understand NN models and allow for quick iterative design
-over novel or esoteric architectures, a deep learning programmer requires access to an
-environment that allows low-level definition of tensor graphs and provides methods
+In order to better understand DL models and allow for quick iterative design
+over novel or esoteric architectures, programmers require access to an
+environment which allows low-level definition of tensor graphs and provides methods
 to quickly access network components for analysis, while still providing a framework
-to manage large architectures. I believe that the added expressability of Lisp
+to manage large architectures. I believe that the added expressibility of Lisp
 in combination with PyTorch's functional API allows for this type of programming
 paradigm, and provides DL researchers an extendable framework which cannot be
 matched by any other abstracted NN packages.
@@ -36,7 +36,7 @@ matched by any other abstracted NN packages.
 ## Features
 
 ### Pytorch Models as Hy-Expressions
-Defining models using Hy-Expressions allows for modular design, quick iterative
+Defining models using Hy-Expressions allows for functional design, quick iterative
 refactoring, and manipulation of model code using macros. Here is a short example
 of defining a single layer feed forward neural network using HyTorch tools and training
 on the model on dummy data.
@@ -49,12 +49,12 @@ on the model on dummy data.
         [torch.optim [Adam]])
 
 ; Macros
-(require [hytorch [*]] ; defmodule
+(require [hytorch [*]] ; defsigmod
          [hytorch.thread [*]] ; Threading macros :{->,->>,*->,...}
          [hy.contrib.walk [let]])
 
 ;; Linear Function Module
-(defmodule Linear [x w b]
+(defsigmod Linear [x w b]
   (-> x (@ w) (+ b)))
 
 ;; Linear Module Initializer
@@ -67,7 +67,7 @@ on the model on dummy data.
                  (Parameter :requires_grad True))))
 
 ;; Single-layer Feed Forward Neural Network
-(defmodule FeedForwardNN [x fc-in act fc-out]
+(defsigmod FeedForwardNN [x fc-in act fc-out]
   (-> x fc-in act fc-out))
 
 ;; FFNN Module Initializer
@@ -108,26 +108,61 @@ on the model on dummy data.
       (.step optimizer))))
 ```
 
-HyTorch works alongside PyTorch abstractions allowing for a more functional style of
-programming computational graphs. It also adds macro programming primitives through threading functions to define more
-complex models. In the above example, we show the use of the macro `defmodule` which takes the
-arguments and defines a PyTorch `Module` object. The `components` used by the module during forward
+HyTorch works alongside PyTorch's abstractions providing a more functional style for
+programming computational graphs. HyTorch also includes threading macros to define more complex models.
+
+In the above example, we show the use of the macro `defsigmod` which takes its arguments and
+defines a PyTorch `Module` class. The `components` used by the module during forward
 propagation are defined in the argument list. The first expression following the argument list
-defines the `forward procedure`. Thus, defining a PyTorch module takes the following form:
+defines the `forward-procedure`. Thus, defining a PyTorch module takes the following form:
 
 ```hy
-(defmodule module-name [component-0 ...] forward-procedure)
+(defsigmod sigmod-name [component-0 ...] forward-procedure)
 ```
 
 While PyTorch's module system uses a object oriented approach, HyTorch's abstractions allows
-for more functional manipulation by only using locally stored variables if defined when instantiating
-a new module object. For example, the `n/Linear` function creates a new `Linear` module with custom
-default and persistent tensors, weight `w` and bias `b`. If arguments `w` or `b` are not provided
-during the forward pass of `Linear`, then the default values are used.
+for functional manipulation. HyTorch abstracts the Pytorch `Module` into the form `sigmod`.
+A `sigmod` can be thought of as a lambda expression with all the added benefits of Pytorch's
+`Module` system. Default `components` (or sub-modules in traditional PyTorch) can be
+binded to `sigmod`s when creating a new object. If bound during initialization, the
+default `components` will be used during the forward pass.
+
+For example, the `n/Linear` function in the code example creates a new `Linear` module with custom
+default-and-persistent tensors, weight `w` and bias `b`. If arguments `w` or `b` are not provided
+during the forward pass of `Linear`, then these default values are used.
+
+### Anonymous Sigmods (i.e. Anonymous PyTorch Modules)
+Side effects make systems harder to debug and understand. The `sigmod` was designed to
+limit the `Module` to a formalized abstraction similar to the lambda. HyTorch allows
+for anonymous PyTorch `Modules` through `sigmod`. For example, an anonymous Linear function
+can be defined as follows:
+
+```hy
+; Anonymous Linear
+(sigmod [x w b] (-> x (* w) (+ b)))
+
+; Forward Propagate
+((sigmod [x w b] (-> x (* w) (+ b))) my-x my-w my-b)
+
+```
+
+HyTorch's macro `bind` can be used to assign default values to components same as when creating
+a new object of a namespaced `sigmod` with `defsigmod`. Using the Linear function as an example again:
+
+```hy
+; Anonymous Linear with default w and b
+(bind (sigmod [x w b] (-> x (* w) (+ b)))
+  :w (-> (torch.empty (, f-in f-out))
+         (.normal_ :mean 0 :std 1.0)
+         (Parameter :requires_grad True))
+  :b (-> (torch.empty (, f-out))
+         (.normal_ :mean 0 :std 1.0)
+         (Parameter :requires_grad True))))
+```
 
 ### Hy-Expression Threading
 HyTorch contains custom threading macros to help define more complex network
-architectures. Threading macros are common to other functional lisp langauges such as Clojure.
+architectures. Threading macros are common to other functional lisp languages such as Clojure.
 The simplest comes in the form of the thread first macro `->`, which inserts each expression into the
 next expression’s first argument place. The compliment of this macro which inserts the expressions
 into the last argument place is `->>`. The following are various threading macros available in
