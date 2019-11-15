@@ -1,7 +1,10 @@
 ;;; spec.hy
-;; Updated: 11/13/19
+;; Updated: 11/14/19
 ;; File defines specfication system used for HyTorch. Inspired from clojure's spec.
 ;;
+;;
+;; To use macros, import using:
+;; (require [hytorch.spec [*]])
 
 ; Imports
 (import hy)

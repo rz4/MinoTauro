@@ -1,8 +1,12 @@
+;;; sigmod.hy
+;; Updated: 11/14/19
+;; File defines PyTorch Moduel macros for HyTorch environment.
+;;
+;; To use macros, import using:
+;; (require [hytorch.sigmod [*]])
+
 ; Imports
 (import hy)
-
-; Macros
-; some
 
 ;-----MODULES------
 

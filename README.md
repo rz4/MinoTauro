@@ -49,7 +49,7 @@ the model on dummy data.
         [torch.optim [Adam]])
 
 ; Macros
-(require [minotauro [*]] ; defsigmod
+(require [minotauro.sigmod [*]] ; defsigmod
          [minotauro.thread [*]] ; Threading macros :{->,->>,*->,...}
          [hy.contrib.walk [let]])
 
