@@ -160,7 +160,7 @@ a new object of a namespaced `sigmod` with `defsigmod`. Using the Linear functio
          (.normal_ :mean 0 :std 1.0)
          (Parameter :requires_grad True))))
 
-: Namespaced Linear with default w and b
+; Namespaced Linear with default w and b
 (Linear
   :w (-> (torch.empty (, f-in f-out))
          (.normal_ :mean 0 :std 1.0)
