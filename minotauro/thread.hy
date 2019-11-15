@@ -103,7 +103,7 @@
     (setv ret (macroexpand
                 (cond [(instance? HyList form)
                        (if (instance? HyList ret)
-                           (do (if (!= (len node) (len ret))
+                           (do (if (!= (len form) (len ret))
                                    (raise (ValueError "|->: Dimension Mismatch")))
                                (setv accum '[])
                                (for [i (range (len form))]
@@ -134,7 +134,7 @@
     (setv ret (macroexpand
                 (cond [(instance? HyList form)
                        (if (instance? HyList ret)
-                           (do (if (!= (len node) (len ret))
+                           (do (if (!= (len form) (len ret))
                                    (raise (ValueError "|->: Dimension Mismatch")))
                                (setv accum '[])
                                (for [i (range (len form))]
