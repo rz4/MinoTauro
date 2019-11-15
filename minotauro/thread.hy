@@ -103,7 +103,7 @@
     (setv ret (macroexpand
                 (cond [(instance? HyList form)
                        (if (instance? HyList ret)
-                           (do (assert (!= (len form) (len ret)) "|->: Collection Size Mismatch.")
+                           (do (assert (= (len form) (len ret)) "|->: Collection Size Mismatch.")
                                (setv accum '[])
                                (for [i (range (len form))]
                                     (.append accum (macroexpand `(|-> ~(get ret i) ~(get form i)))))
@@ -133,7 +133,7 @@
     (setv ret (macroexpand
                 (cond [(instance? HyList form)
                        (if (instance? HyList ret)
-                           (do (assert (!= (len form) (len ret)) "|->: Collection Size Mismatch.")
+                           (do (assert (= (len form) (len ret)) "|->: Collection Size Mismatch.")
                                (setv accum '[])
                                (for [i (range (len form))]
                                     (.append accum (macroexpand `(|->> ~(get ret i) ~(get form i)))))
@@ -199,7 +199,7 @@
 ;; (if True (if (even? 2) (if (odd? 2) (decr (incr (incr x))) (incr (incr x))) (incr x)) x)
 
 (defmacro cond-> [head &rest args]
-  (assert (even? (len args)) "Wrong number of arguments.")
+  (assert (even? (len args)) "cond->: Wrong number of arguments.")
   (setv pairs (partition args :n 2)
         thread (macroexpand head))
   (setv conditions []
@@ -223,7 +223,7 @@
 ;; Variation of the thread last macro which operates as cond-> in clojure.
 ;;
 (defmacro cond->> [head &rest args]
-  (assert (even? (len args)) "Wrong number of arguments.")
+  (assert (even? (len args)) "cond->: Wrong number of arguments.")
   (setv pairs (partition args :n 2)
         thread (macroexpand head))
   (setv conditions []
