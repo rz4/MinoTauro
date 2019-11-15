@@ -14,5 +14,5 @@ setup(
     package_data={
         'minotauro': ['*.hy',],
     },
-    install_requires = ["hy==0.17.0"],
+    install_requires = ["hy==0.17.0" "torch"],
 )
