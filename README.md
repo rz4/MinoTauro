@@ -1,4 +1,4 @@
-![LOGO](images/logo.png)
+![LOGO](images/name.png)
 # (setv MinoTauro (+ Hy PyTorch))
 PyTorch Meta-Programming Using the Lisp Dialect Hy
 
