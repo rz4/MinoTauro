@@ -1,12 +1,12 @@
 ![LOGO](images/logo.png)
-# (setv HyTorch (+ Hy PyTorch))
+# (setv MinoTauro (+ Hy PyTorch))
 PyTorch Meta-Programming Using the Lisp Dialect Hy
 
-![Current Version](https://img.shields.io/badge/version-0.0.2-red.svg)
+![Current Version](https://img.shields.io/badge/version-0.0.3-red.svg)
 
 Lead Maintainer: [Rafael Zamora-Resendiz](https://github.com/rz4)
 
-**HyTorch** is a Hy (0.17.0) library running Python (3.7) and PyTorch (1.0.1)
+**MinoTauro** is a Hy (0.17.0) library running Python (3.7) and PyTorch (1.0.1)
 for use in rapid low-level development of differential programs as well as
 for experiments in deep learning meta-programming.
 
@@ -18,8 +18,8 @@ field of deep learning (DL).
 
 While the final goal of this project is to build a framework for DL systems to have
 access to their code, this coding paradigm also shows promise at accelerating
-the development of new differential models while allowing significant manipulation
-of low-torch tensor operations at runtime. A common trend in current DL packages is
+the development of new differential models while promoting formalized abstraction
+with type checking. A common trend in current DL packages is
 an abundance of object-oriented abstraction with packages such as Keras. This only reduces
 transparency to the already black-box nature of NN systems, and makes interpretability
 and reproducibility of models more difficult.
@@ -27,8 +27,8 @@ and reproducibility of models more difficult.
 In order to better understand DL models and allow for quick iterative design
 over novel or esoteric architectures, programmers require access to an
 environment which allows low-level definition of tensor graphs and provides methods
-to quickly access network components for analysis, while still providing a framework
-to manage large architectures. I believe that the added expressibility of Lisp
+to quickly access network components for debugging and analysis, while using Pytorch's
+backend to run on high performance machines. I believe that the added expressibility of Lisp
 in combination with PyTorch's functional API allows for this type of programming
 paradigm, and provides DL researchers an extendable framework which cannot be
 matched by any other abstracted NN packages.
@@ -38,7 +38,7 @@ matched by any other abstracted NN packages.
 ### Pytorch Models as Hy-Expressions
 Defining models using Hy-Expressions allows for functional design, quick iterative
 refactoring, and manipulation of model code using macros. Here is a short example
-of defining a single layer feed forward neural network using HyTorch tools and training
+of defining a single layer feed forward neural network using MinoTauro's tools and training
 the model on dummy data.
 
 ```hy
@@ -49,8 +49,8 @@ the model on dummy data.
         [torch.optim [Adam]])
 
 ; Macros
-(require [hytorch [*]] ; defsigmod
-         [hytorch.thread [*]] ; Threading macros :{->,->>,*->,...}
+(require [minotauro [*]] ; defsigmod
+         [minotauro.thread [*]] ; Threading macros :{->,->>,*->,...}
          [hy.contrib.walk [let]])
 
 ;; Linear Function Module
@@ -108,8 +108,9 @@ the model on dummy data.
       (.step optimizer))))
 ```
 
-HyTorch works alongside PyTorch's abstractions providing a more functional style for
-programming computational graphs. HyTorch also includes threading macros to define more complex models.
+MinoTauro works alongside PyTorch's abstractions providing a more functional style for
+defining computational graphs. MinoTauro also includes a library of specialized threading
+macros to define more complex models.
 
 In the above example, we show the use of the macro `defsigmod` which takes its arguments and
 defines a PyTorch `Module` class. The `components` used by the module during forward
@@ -120,9 +121,9 @@ defines the `forward-procedure`. Thus, defining a PyTorch module takes the follo
 (defsigmod sigmod-name [component-0 ...] forward-procedure)
 ```
 
-While PyTorch's module system uses a object oriented approach, HyTorch's abstractions allows
-for functional manipulation. HyTorch abstracts the Pytorch `Module` into the form `sigmod`.
-A `sigmod` can be thought of as a lambda expression with all the added benefits of Pytorch's
+While PyTorch's module system uses a object oriented approach, MinoTauro's abstractions allows
+for functional manipulation. MinoTauro abstracts the PyTorch `Module` into the form `sigmod`.
+A `sigmod` can be thought of as a lambda expression with all the added benefits of PyTorch's
 `Module` system. Default `components` (or sub-modules in traditional PyTorch) can be
 binded to `sigmod`s when creating a new object. If bound during initialization, the
 default `components` will be used during the forward pass.
@@ -133,7 +134,7 @@ during the forward pass of `Linear`, then these default values are used.
 
 ### Anonymous Sigmods (i.e. Anonymous PyTorch Modules)
 Side effects make systems harder to debug and understand. The `sigmod` was designed to
-limit the `Module` to a formalized abstraction similar to the lambda. HyTorch allows
+limit the `Module` to a formalized abstraction similar to the lambda. MinoTauro allows
 for anonymous PyTorch `Modules` through `sigmod`. For example, an anonymous Linear function
 can be defined as follows:
 
@@ -146,7 +147,7 @@ can be defined as follows:
 
 ```
 
-HyTorch's macro `bind` can be used to assign default values to components same as when creating
+MinoTauro's macro `bind` can be used to assign default values to components same as when creating
 a new object of a namespaced `sigmod` with `defsigmod`. Using the Linear function as an example again:
 
 ```hy
@@ -158,15 +159,25 @@ a new object of a namespaced `sigmod` with `defsigmod`. Using the Linear functio
   :b (-> (torch.empty (, f-out))
          (.normal_ :mean 0 :std 1.0)
          (Parameter :requires_grad True))))
+
+: Namespaced Linear with default w and b
+(Linear
+  :w (-> (torch.empty (, f-in f-out))
+         (.normal_ :mean 0 :std 1.0)
+         (Parameter :requires_grad True))
+  :b (-> (torch.empty (, f-out))
+         (.normal_ :mean 0 :std 1.0)
+         (Parameter :requires_grad True))))
 ```
 
+
 ### Hy-Expression Threading
-HyTorch contains custom threading macros to help define more complex network
-architectures. Threading macros are common to other functional lisp languages such as Clojure.
+MinoTauro contains custom threading macros to help define more complex network
+architectures. Threading macros are common to other function-heavy lisp languages such as Clojure.
 The simplest comes in the form of the thread first macro `->`, which inserts each expression into the
 next expression’s first argument place. The compliment of this macro which inserts the expressions
 into the last argument place is `->>`. The following are various threading macros available in
-HyTorch:
+MinoTauro:
 
 #### Broadcast-thread first macro:
 Variation of the thread first macro which threads listed forms as
@@ -178,7 +189,7 @@ Example:
 ; Returns
 (+ x y)
 ```
-When form precedes list of forms broadcast preceding forms to each form in list.
+When a form precedes a list of forms broadcast the preceding form to each form in the list.
 Example:
 ``` hy
 (*-> x [inc dec])
@@ -196,7 +207,7 @@ Example:
 ; Returns
 [(inc x) (dec y)]
 ```
-If list of forms precedes a single form, thread form along each branch.
+If a list of forms precedes a single form, thread form along each branch.
 Example:
 ``` hy
 (|-> [x y] (+ 1))
@@ -208,7 +219,7 @@ Example:
 #### Set-thread first macro:
 Variation of the thread first macro which stores the result at each form thread.
 Used when its more efficient to pass pointer of the evaluated form to next form operation instead
-of unevaluated form. Gensym used for variable name to prevent namespace collisions.
+of an unevaluated form. Gensym is used for variable names to prevent namespace collisions.
 Example:
 ```hy
 (=-> (+ x 1) incr)
@@ -231,9 +242,32 @@ Example:
  x)
 ```
 
-It's important to note that all threading macros provided in HyTorch macroexpand each form
-prior to threading into next expression. As standard, the "last" version of each macro is the
+It's important to note that all threading macros provided in MinoTauro macroexpand each form
+prior to threading it into the next expression. As standard, the "last" version of each macro is the
 symbol plus an added `>` (i.e `*->>`, `|->>`, etc.)
+
+## Spec (Clojure-like Specifications For PyTorch)
+Inspired from Clojure's `spec`, MinoTauro includes a similar system for predicate type checking.
+This package in conjunction with the formalized `sigmod` allows for runtime predicate checking of components,
+and other features common in Clojure's `spec` such as `conform`, `explain`, and `gen` (COMING SOON).
+These tools were added to MintoTauro to help debugging computational graphs, constrain model architecture
+to facilitate design collaboration, and to generate valid data/models. Here is a small peak into these features:
+
+```hy
+; Macros
+(require (minotauro.spec [*]))
+
+; Define Specification
+(spec/def :nb-even even?)
+
+; More Complex Specifications
+(spec/def :int-even (spec/and (fn [x] (instance? int x)) :nb-even))
+
+; Runtime Specification Check
+(spec/valid? :int-even 2)
+
+;; Returns -> True
+```
 
 ## Installation:
 
@@ -242,15 +276,15 @@ symbol plus an added `>` (i.e `*->>`, `|->>`, etc.)
 The current project has been tested using Hy 0.16.0, PyTorch 1.0.1.post2 and
 Python 3.7.
 
-The following ***Pip*** command can be used to install **HyTorch**:
+The following ***Pip*** command can be used to install **MinoTauro**:
 
 ```
-$ pip3 install git+https://github.com/rz4/HyTorch
+$ pip3 install git+https://github.com/rz4/MinoTauro
 ```
 
 ## Jupyter Notebook Setup
 
-Ok, so this is already awesome. Let's make it even better by running HyTorch in
+Ok, so this is already awesome. Let's make it even better by running MinoTauro in
 a Jupyter notebook!
 
 ### Calysto - Hy IPython Kernel
@@ -294,5 +328,3 @@ $ cd jupyter
 
 An introduction to Hytorch and some use cases can be found in the following
 Jupyter notebooks:
-
-- [HyTorch Tutorial](notebooks/HyTorch_Tutorial-old.ipynb)
