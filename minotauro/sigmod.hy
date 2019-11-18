@@ -1,6 +1,6 @@
 ;;; sigmod.hy
-;; Updated: 11/14/19
-;; File defines PyTorch Moduel macros for HyTorch environment.
+;; Updated: 11/18/19
+;; File defines PyTorch Module macros for HyTorch environment.
 ;;
 ;; To use macros, import using:
 ;; (require [hytorch.sigmod [*]])
@@ -13,7 +13,7 @@
 ;; Module Definition
 (defmacro defsigmod [module-name components &rest forward]
 
-  ; Generate arg expr
+  ; Generate default args expressions
   (setv args (lfor c components [c None]))
 
   ; Generate init-body
@@ -24,7 +24,7 @@
   (setv dispatcher '(setv))
   (for [c components] (+= dispatcher `(~c (if (none? ~c) (. self ~c) ~c))))
 
-  ; Rapture
+  ; Macro expand forward
   (setv forward (macroexpand forward))
 
   `(do (import [torch.nn [Module]])
@@ -34,12 +34,12 @@
            ~init-body)
          (defn forward [self &optional ~@args]
            ~dispatcher
-           (do ~@forward)))))
+           ~@forward))))
 
 ;; Anonymous Module Definition
 (defmacro sigmod [components &rest forward]
 
-  ; Generate arg expr
+  ; Generate default args expr
   (setv args (lfor c components [c None]))
 
   ; Generate init-body
@@ -50,7 +50,7 @@
   (setv dispatcher '(setv))
   (for [c components] (+= dispatcher `(~c (if (none? ~c) (. self ~c) ~c))))
 
-  ; Macro Expand Forward
+  ; Macro expand forward
   (setv forward (macroexpand forward))
 
   `(do (import [torch.nn [Module]])
@@ -62,7 +62,7 @@
            "forward"
            (fn [self &optional ~@args]
              ~dispatcher
-             (do ~@forward))}))))
+             ~@forward)}))))
 
 ;;
 (defmacro bind [sig &rest args]

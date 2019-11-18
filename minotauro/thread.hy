@@ -31,13 +31,14 @@
     ret)
 
 ;; Broadcast-thread first macro:
-;; Variation of the thread first macro which threads listed forms as
-;; the first n arguments in the next form.
+;; Variation of the thread first macro which threads listed forms as the first
+;; n arguments in the next form.
 ;; Example:
 ;;
 ;; (*-> [x y] +) : (+ x y)
 ;;
-;; When form precedes list of forms broadcast preceding forms to each form in list.
+;; When a form precedes a list of forms broadcast the preceding form to each
+;; form in the list.
 ;; Example:
 ;;
 ;; (*-> x [inc decr]) : [(inc x) (decr x)]
@@ -92,7 +93,7 @@
 ;;
 ;; (|-> [x y] [inc decr]) : [(incr x) (decr y)]
 ;;
-;; If list of forms precedes a single form, thread form along each branch.
+;; If a list of forms precedes a single form, thread form along each branch.
 ;; Example:
 ;;
 ;; (|-> [x y] (+ 1)) : [(+ x 1) (+ y 1)]
@@ -194,7 +195,7 @@
   ret)
 
 ;; Conditional-thread first macro:
-;; Variation of the thread first macro which operates as cond-> in clojure.
+;; Variation of the thread first macro which operates as cond-> in Clojure.
 ;; Example:
 ;;
 ;; (cond-> x True incr (even? 2) incr (odd? 2) decr) :
@@ -222,7 +223,7 @@
   ret)
 
 ;; Conditional-thread last macro:
-;; Variation of the thread last macro which operates as cond-> in clojure.
+;; Variation of the thread last macro which operates as cond-> in Clojure.
 ;;
 (defmacro cond->> [head &rest args]
   (assert (even? (len args)) "cond->: Wrong number of arguments.")
