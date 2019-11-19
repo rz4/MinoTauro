@@ -145,7 +145,7 @@
                                (for [n form] (.append accum (macroexpand `(|->> ~ret ~n))))
                                accum))]
                       [(instance? HyExpression form)
-                       (if (instance? ret HyList)
+                       (if (instance? HyList ret)
                            (do (setv accum '[])
                                (for [r ret] (.append accum `(~(first form) ~@(rest form) ~r)))
                                accum)
