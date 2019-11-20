@@ -1,10 +1,10 @@
 ;;; spec.hy
 ;; Updated: 11/14/19
-;; File defines specfication system used for HyTorch. Inspired from clojure's spec.
+;; File defines specfication system used for minotauro. Inspired from clojure's spec.
 ;;
 ;;
 ;; To use macros, import using:
-;; (require [hytorch.spec [*]])
+;; (require [minotauro.spec [*]])
 
 ; Imports
 (import hy)
@@ -36,7 +36,7 @@
 ;; Defines new specfication in registry
 (defmacro spec/def [kw-namespace predicate]
   (assert (keyword? kw-namespace) "spec/ArgumentError: First argument must be a HyKeyword.")
-  `(do (import [hytorch.spec [spec/registry]])
+  `(do (import [minotauro.spec [spec/registry]])
        (assoc (spec/registry) ~kw-namespace ~predicate)))
 
 ;;
@@ -46,7 +46,7 @@
     (if (keyword? spec)
       (.append fetchers `((get (spec/registry) ~spec) x))
       (.append fetchers `(~spec x))))
-  `(do (import [hytorch.spec [spec/registry]])
+  `(do (import [minotauro.spec [spec/registry]])
        (fn [x] (not (and ~@fetchers)))))
 
 ;;
@@ -56,7 +56,7 @@
     (if (keyword? spec)
       (.append fetchers `((get (spec/registry) ~spec) x))
       (.append fetchers `(~spec x))))
-  `(do (import [hytorch.spec [spec/registry]])
+  `(do (import [minotauro.spec [spec/registry]])
        (fn [x] (and ~@fetchers))))
 
 ;;
@@ -66,7 +66,7 @@
     (if (keyword? spec)
       (.append fetchers `((get (spec/registry) ~spec) x))
       (.append fetchers `(~spec x))))
-  `(do (import [hytorch.spec [spec/registry]])
+  `(do (import [minotauro.spec [spec/registry]])
        (fn [x] (or ~@fetchers))))
 ;;
 ;(defmacro spec/keys [&optional [req None] [opt None]])
@@ -82,7 +82,7 @@
   (setv vfetcher (if (keyword? vals)
                     `((get (spec/registry) ~vals) x)
                     `(~vals x)))
-  `(do (import [hytorch.spec [spec/registry]])
+  `(do (import [minotauro.spec [spec/registry]])
        (fn [dict-x] (and (not (some zero? (lfor x (.keys dict-x) ~kfetcher)))
                          (not (some zero? (lfor x (.values dict-x) ~vfetcher)))))))
 
@@ -91,7 +91,7 @@
   (setv fetcher (if (keyword? spec)
                     `((get (spec/registry) ~spec) x)
                     `(~spec x)))
-  `(do (import [hytorch.spec [spec/registry]])
+  `(do (import [minotauro.spec [spec/registry]])
        (fn [col-x] (not (some zero? (lfor x col-x ~fetcher))))))
 
 ;;
@@ -102,7 +102,7 @@
       (.append fetchers `((get (spec/registry) ~spec) (get x ~i)))
       (.append fetchers `(~spec (get x ~i)))))
   (setv nb-specs (len fetchers))
-  `(do (import [hytorch.spec [spec/registry]])
+  `(do (import [minotauro.spec [spec/registry]])
        (fn [x] (and (= (len x) ~nb-specs) ~@fetchers))))
 
 ;;
@@ -115,7 +115,7 @@
 ;;
 (defmacro spec/valid? [spec data]
   (assert (keyword? spec) "spec/ArgumentError: First argument must be a HyKeyword.")
-  `(do (import [hytorch.spec [spec/registry]])
+  `(do (import [minotauro.spec [spec/registry]])
        ((get (spec/registry) ~spec) ~data)))
 
 ;;
@@ -124,7 +124,7 @@
 ;;
 (defmacro spec/conform [spec data]
   (assert (keyword? spec) "spec/ArgumentError: First argument must be a HyKeyword.")
-  `(do (import [hytorch.spec [spec/registry]])
+  `(do (import [minotauro.spec [spec/registry]])
        (if ((get (spec/registry) ~spec) ~data)
          ~data
          (assert False "spec/conform: Data does not conform to spec."))))
