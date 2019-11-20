@@ -43,6 +43,7 @@
 (defmacro spec/nand [&rest specs]
   (setv fetchers [])
   (for [spec specs]
+    (setv spec (macroexpand spec))
     (if (keyword? spec)
       (.append fetchers `((get (spec/registry) ~spec) x))
       (.append fetchers `(~spec x))))
@@ -53,6 +54,7 @@
 (defmacro spec/and [&rest specs]
   (setv fetchers [])
   (for [spec specs]
+    (setv spec (macroexpand spec))
     (if (keyword? spec)
       (.append fetchers `((get (spec/registry) ~spec) x))
       (.append fetchers `(~spec x))))
@@ -63,11 +65,13 @@
 (defmacro spec/or [&rest specs]
   (setv fetchers [])
   (for [spec specs]
+    (setv spec (macroexpand spec))
     (if (keyword? spec)
       (.append fetchers `((get (spec/registry) ~spec) x))
       (.append fetchers `(~spec x))))
   `(do (import [minotauro.spec [spec/registry]])
        (fn [x] (or ~@fetchers))))
+
 ;;
 ;(defmacro spec/keys [&optional [req None] [opt None]])
 
@@ -76,6 +80,8 @@
 
 ;;
 (defmacro spec/dict-of [keys vals]
+  (setv keys (macroexpand keys)
+        vals (macroexpand vals))
   (setv kfetcher (if (keyword? keys)
                     `((get (spec/registry) ~keys) x)
                     `(~keys x)))
@@ -88,6 +94,7 @@
 
 ;;
 (defmacro spec/coll-of [spec]
+  (setv spec (macroexpand spec))
   (setv fetcher (if (keyword? spec)
                     `((get (spec/registry) ~spec) x)
                     `(~spec x)))
@@ -95,21 +102,21 @@
        (fn [col-x] (not (some zero? (lfor x col-x ~fetcher))))))
 
 ;;
-(defmacro spec/elements [&rest specs]
-  (setv fetchers [])
-  (for [(, i spec) (enumerate specs)]
-    (if (keyword? spec)
-      (.append fetchers `((get (spec/registry) ~spec) (get x ~i)))
-      (.append fetchers `(~spec (get x ~i)))))
-  (setv nb-specs (len fetchers))
-  `(do (import [minotauro.spec [spec/registry]])
-       (fn [x] (and (= (len x) ~nb-specs) ~@fetchers))))
+;; (defmacro spec/elements [&rest specs]
+;;   (setv fetchers [])
+;;   (for [(, i spec) (enumerate specs)]
+;;     (if (keyword? spec)
+;;       (.append fetchers `((get (spec/registry) ~spec) (get x ~i)))
+;;       (.append fetchers `(~spec (get x ~i)))))
+;;   (setv nb-specs (len fetchers))
+;;   `(do (import [minotauro.spec [spec/registry]])
+;;        (fn [x] (and (= (len x) ~nb-specs) ~@fetchers))))
 
 ;;
 ;;(defmacro spec/cat [&rest specs])
 
 ;;
-(defmacro spec/fdef [namespace-kw &optional [args None] [ret None]])
+;; (defmacro spec/fdef [namespace-kw &optional [args None] [ret None]])
 
 ;;---Operators---
 ;;
@@ -119,7 +126,7 @@
        ((get (spec/registry) ~spec) ~data)))
 
 ;;
-(defmacro spec/assert [spec data])
+;; (defmacro spec/assert [spec data])
 
 ;;
 (defmacro spec/conform [spec data]
@@ -140,6 +147,3 @@
 
 
 ;-----PREDICATES------
-
-;;
-(defn int? [x] (instance? int x))
