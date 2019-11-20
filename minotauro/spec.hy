@@ -35,6 +35,7 @@
 
 ;; Defines new specfication in registry
 (defmacro spec/def [kw-namespace predicate]
+  (setv predicate (macroexpand predicate))
   (assert (keyword? kw-namespace) "spec/ArgumentError: First argument must be a HyKeyword.")
   `(do (import [minotauro.spec [spec/registry]])
        (assoc (spec/registry) ~kw-namespace ~predicate)))
@@ -42,35 +43,53 @@
 ;;
 (defmacro spec/nand [&rest specs]
   (setv fetchers [])
+  (setv setter '(setv))
   (for [spec specs]
     (setv spec (macroexpand spec))
     (if (keyword? spec)
       (.append fetchers `((get (spec/registry) ~spec) x))
-      (.append fetchers `(~spec x))))
+      (if (instance? HyExpression spec)
+        (do (setv var (gensym))
+            (+= setter `(~var ~spec))
+            (.append fetchers `(~var x)))
+        (.append fetchers `(~spec x)))))
   `(do (import [minotauro.spec [spec/registry]])
+       ~setter
        (fn [x] (not (and ~@fetchers)))))
 
 ;;
 (defmacro spec/and [&rest specs]
   (setv fetchers [])
+  (setv setter '(setv))
   (for [spec specs]
     (setv spec (macroexpand spec))
     (if (keyword? spec)
       (.append fetchers `((get (spec/registry) ~spec) x))
-      (.append fetchers `(~spec x))))
+      (if (instance? HyExpression spec)
+        (do (setv var (gensym))
+            (+= setter `(~var ~spec))
+            (.append fetchers `(~var x)))
+        (.append fetchers `(~spec x)))))
   `(do (import [minotauro.spec [spec/registry]])
+       ~setter
        (fn [x] (and ~@fetchers))))
 
 ;;
 (defmacro spec/or [&rest specs]
   (setv fetchers [])
+  (setv setter '(setv))
   (for [spec specs]
     (setv spec (macroexpand spec))
     (if (keyword? spec)
       (.append fetchers `((get (spec/registry) ~spec) x))
-      (.append fetchers `(~spec x))))
+      (if (instance? HyExpression spec)
+        (do (setv var (gensym))
+            (+= setter `(~var ~spec))
+            (.append fetchers `(~var x)))
+        (.append fetchers `(~spec x)))))
   `(do (import [minotauro.spec [spec/registry]])
-       (fn [x] (or ~@fetchers))))
+       ~setter
+       (fn [x] (| ~@fetchers))))
 
 ;;
 ;(defmacro spec/keys [&optional [req None] [opt None]])
@@ -82,23 +101,39 @@
 (defmacro spec/dict-of [keys vals]
   (setv keys (macroexpand keys)
         vals (macroexpand vals))
+  (setv setter '(setv))
   (setv kfetcher (if (keyword? keys)
-                    `((get (spec/registry) ~keys) x)
-                    `(~keys x)))
+                     `((get (spec/registry) ~keys) x)
+                     (if (instance? HyExpression keys)
+                       (do (setv var (gensym))
+                           (+= setter `(~var ~keys))
+                           `(~var x))
+                       `(~keys x))))
   (setv vfetcher (if (keyword? vals)
-                    `((get (spec/registry) ~vals) x)
-                    `(~vals x)))
+                     `((get (spec/registry) ~vals) x)
+                     (if (instance? HyExpression vals)
+                       (do (setv var (gensym))
+                           (+= setter `(~var ~vals))
+                           `(~var x))
+                       `(~vals x))))
   `(do (import [minotauro.spec [spec/registry]])
+       ~setter
        (fn [dict-x] (and (not (some zero? (lfor x (.keys dict-x) ~kfetcher)))
                          (not (some zero? (lfor x (.values dict-x) ~vfetcher)))))))
 
 ;;
 (defmacro spec/coll-of [spec]
   (setv spec (macroexpand spec))
-  (setv fetcher (if (keyword? spec)
-                    `((get (spec/registry) ~spec) x)
-                    `(~spec x)))
+  (setv setter '(setv))
+  (setv fetcher (if (keyword? spec
+                     `((get (spec/registry) ~spec) x)
+                     (if (instance? HyExpression spec)
+                       (do (setv var (gensym))
+                           (+= setter `(~var ~spec))
+                           `(~var x))
+                       `(~spec x)))))
   `(do (import [minotauro.spec [spec/registry]])
+       ~setter
        (fn [col-x] (not (some zero? (lfor x col-x ~fetcher))))))
 
 ;;
@@ -121,18 +156,36 @@
 ;;---Operators---
 ;;
 (defmacro spec/valid? [spec data]
-  (assert (keyword? spec) "spec/ArgumentError: First argument must be a HyKeyword.")
+  (setv spec (macroexpand spec))
+  (setv setter '(setv))
+  (setv fetcher (if (keyword? spec)
+                  `(get (spec/registry) ~spec)
+                  (if (instance? HyExpression spec)
+                    (do (setv var (gensym))
+                        (+= setter `(~var ~spec))
+                        var)
+                    spec)))
   `(do (import [minotauro.spec [spec/registry]])
-       ((get (spec/registry) ~spec) ~data)))
+       ~setter
+       (~fetcher ~data)))
 
 ;;
 ;; (defmacro spec/assert [spec data])
 
 ;;
 (defmacro spec/conform [spec data]
-  (assert (keyword? spec) "spec/ArgumentError: First argument must be a HyKeyword.")
+  (setv spec (macroexpand spec))
+  (setv setter '(setv))
+  (setv fetcher (if (keyword? spec)
+                  `(get (spec/registry) ~spec)
+                  (if (instance? HyExpression spec)
+                    (do (setv var (gensym))
+                        (+= setter `(~var ~spec))
+                        var)
+                    spec)))
   `(do (import [minotauro.spec [spec/registry]])
-       (if ((get (spec/registry) ~spec) ~data)
+       ~setter
+       (if (~fetcher ~data)
          ~data
          (assert False "spec/conform: Data does not conform to spec."))))
 
