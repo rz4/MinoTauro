@@ -136,7 +136,7 @@
 (defmacro spec/regex? [regex]
   `(do (import re)
        (let [regexp (re.compile ~regex)]
-         (fn [x] (.search regexp x)))))
+         (fn [x] (if (.search regexp x) True False)))))
 
 
 ;-----PREDICATES------
