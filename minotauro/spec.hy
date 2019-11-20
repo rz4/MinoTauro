@@ -132,6 +132,13 @@
 ;;
 ;;(defmacro spec/explain [spec data])
 
+;;
+(defmacro spec/regex? [regex]
+  `(do (import re)
+       (let [regexp (re.compile ~regex)]
+         (fn [x] (.search regexp x)))))
+
+
 ;-----PREDICATES------
 
 ;;
