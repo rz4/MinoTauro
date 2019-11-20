@@ -20,6 +20,20 @@
   (try spec-registry
     (except [] (setv spec-registry {}) spec-registry)))
 
+;;
+(defn spec/conform-registry [&optional [reset False]]
+  (global conform-registry)
+  (try (if reset
+           (do (setv conform-registry {}) conform-registry)
+           conform-registry)
+    (except [] (setv conform-registry {}) conform-registry)))
+
+;;
+(defn spec/eval [spec data &optional]
+  (setv out ((get (spec/registry) spec) data))
+  (assoc (spec/conform-registry) spec out)
+  out)
+
 ;; Assertion Flag Getter
 (defn spec/asserts-flag []
   (global check-asserts-)
@@ -47,13 +61,13 @@
   (for [spec specs]
     (setv spec (macroexpand spec))
     (if (keyword? spec)
-      (.append fetchers `((get (spec/registry) ~spec) x))
+      (.append fetchers `(spec/eval (quote ~spec) x))
       (if (instance? HyExpression spec)
         (do (setv var (gensym))
             (+= setter `(~var ~spec))
             (.append fetchers `(~var x)))
         (.append fetchers `(~spec x)))))
-  `(do (import [minotauro.spec [spec/registry]])
+  `(do (import [minotauro.spec [spec/eval]])
        ~setter
        (fn [x] (not (and ~@fetchers)))))
 
@@ -64,13 +78,13 @@
   (for [spec specs]
     (setv spec (macroexpand spec))
     (if (keyword? spec)
-      (.append fetchers `((get (spec/registry) ~spec) x))
+      (.append fetchers `(spec/eval (quote ~spec) x))
       (if (instance? HyExpression spec)
         (do (setv var (gensym))
             (+= setter `(~var ~spec))
             (.append fetchers `(~var x)))
         (.append fetchers `(~spec x)))))
-  `(do (import [minotauro.spec [spec/registry]])
+  `(do (import [minotauro.spec [spec/eval]])
        ~setter
        (fn [x] (and ~@fetchers))))
 
@@ -81,13 +95,13 @@
   (for [spec specs]
     (setv spec (macroexpand spec))
     (if (keyword? spec)
-      (.append fetchers `((get (spec/registry) ~spec) x))
+      (.append fetchers `(spec/eval (quote ~spec) x))
       (if (instance? HyExpression spec)
         (do (setv var (gensym))
             (+= setter `(~var ~spec))
             (.append fetchers `(~var x)))
         (.append fetchers `(~spec x)))))
-  `(do (import [minotauro.spec [spec/registry]])
+  `(do (import [minotauro.spec [spec/eval]])
        ~setter
        (fn [x] (| ~@fetchers))))
 
@@ -103,20 +117,20 @@
         vals (macroexpand vals))
   (setv setter '(setv))
   (setv kfetcher (if (keyword? keys)
-                     `((get (spec/registry) ~keys) x)
+                     `(spec/eval (quote ~keys) x)
                      (if (instance? HyExpression keys)
                        (do (setv var (gensym))
                            (+= setter `(~var ~keys))
                            `(~var x))
                        `(~keys x))))
   (setv vfetcher (if (keyword? vals)
-                     `((get (spec/registry) ~vals) x)
+                     `(spec/eval (quote ~vals) x)
                      (if (instance? HyExpression vals)
                        (do (setv var (gensym))
                            (+= setter `(~var ~vals))
                            `(~var x))
                        `(~vals x))))
-  `(do (import [minotauro.spec [spec/registry]])
+  `(do (import [minotauro.spec [spec/eval]])
        ~setter
        (fn [dict-x] (and (not (some zero? (lfor x (.keys dict-x) ~kfetcher)))
                          (not (some zero? (lfor x (.values dict-x) ~vfetcher)))))))
@@ -126,13 +140,13 @@
   (setv spec (macroexpand spec))
   (setv setter '(setv))
   (setv fetcher (if (keyword? spec
-                     `((get (spec/registry) ~spec) x)
+                     `(spec/eval (quote ~spec) x)
                      (if (instance? HyExpression spec)
                        (do (setv var (gensym))
                            (+= setter `(~var ~spec))
                            `(~var x))
                        `(~spec x)))))
-  `(do (import [minotauro.spec [spec/registry]])
+  `(do (import [minotauro.spec [spec/eval]])
        ~setter
        (fn [col-x] (not (some zero? (lfor x col-x ~fetcher))))))
 
@@ -159,15 +173,15 @@
   (setv spec (macroexpand spec))
   (setv setter '(setv))
   (setv fetcher (if (keyword? spec)
-                  `(get (spec/registry) ~spec)
+                  `(spec/eval (quote ~spec) ~data)
                   (if (instance? HyExpression spec)
                     (do (setv var (gensym))
                         (+= setter `(~var ~spec))
-                        var)
-                    spec)))
-  `(do (import [minotauro.spec [spec/registry]])
+                        `(~var ~data))
+                    `(~spec ~data))))
+  `(do (import [minotauro.spec [spec/eval]])
        ~setter
-       (~fetcher ~data)))
+       ~fetcher))
 
 ;;
 ;; (defmacro spec/assert [spec data])
@@ -177,20 +191,34 @@
   (setv spec (macroexpand spec))
   (setv setter '(setv))
   (setv fetcher (if (keyword? spec)
-                  `(get (spec/registry) ~spec)
+                  `(spec/eval (quote ~spec) ~data)
                   (if (instance? HyExpression spec)
                     (do (setv var (gensym))
                         (+= setter `(~var ~spec))
-                        var)
-                    spec)))
-  `(do (import [minotauro.spec [spec/registry]])
+                        `(~var ~data))
+                    `(~spec ~data))))
+  `(do (import [minotauro.spec [spec/eval]])
        ~setter
-       (if (~fetcher ~data)
+       (if ~fetcher
          ~data
          (assert False "spec/conform: Data does not conform to spec."))))
 
 ;;
-;;(defmacro spec/explain [spec data])
+(defmacro spec/explain [spec data]
+  (setv spec (macroexpand spec))
+  (setv setter '(setv))
+  (setv expr (if (keyword? spec)
+                 `(spec/eval (quote ~spec) ~data)
+                 (if (instance? HyExpression spec)
+                   (do (setv var (gensym))
+                       (+= setter `(~var ~spec))
+                       `(~var ~data))
+                   `(~spec ~data))))
+  `(do (import [minotauro.spec [spec/eval spec/conform-registry]])
+       (spec/conform-registry :reset True)
+       ~setter
+       ~expr
+       (spec/conform-registry)))
 
 ;;
 (defmacro spec/regex? [regex]
