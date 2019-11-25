@@ -5,6 +5,7 @@
 ;; Design Principles:
 ;;
 ;; - Spec should function soley as a macro-imported system.
+;; - Make sure to use gensym to prevent namespace collisions
 ;;
 ;; To use macros, import using:
 ;; (require [minotauro.spec [*]])
@@ -66,119 +67,173 @@
 
 ;; Nand Operator
 (defmacro spec/nand [&rest specs]
-  (setv fetchers [])
-  (setv setter '(setv))
+  (setv fetchers []
+        setter '(setv)
+        var-x (gensym))
   (for [spec specs]
     (setv spec (macroexpand spec))
     (if (keyword? spec)
-      (.append fetchers `(_spec/eval (quote ~spec) x))
+      (.append fetchers `(_spec/eval (quote ~spec) ~var-x))
       (if (instance? HyExpression spec)
         (do (setv var (gensym))
             (+= setter `(~var ~spec))
-            (.append fetchers `(~var x)))
-        (.append fetchers `(~spec x)))))
+            (.append fetchers `(~var ~var-x)))
+        (.append fetchers `(~spec ~var-x)))))
   `(do (import [minotauro.spec [_spec/eval]])
        ~setter
-       (fn [x] (not (and ~@fetchers)))))
+       (fn [~var-x] (not (and ~@fetchers)))))
 
 ;; And Operator
 (defmacro spec/and [&rest specs]
-  (setv fetchers [])
-  (setv setter '(setv))
+  (setv fetchers []
+        setter '(setv)
+        var-x (gensym))
   (for [spec specs]
     (setv spec (macroexpand spec))
     (if (keyword? spec)
-      (.append fetchers `(_spec/eval (quote ~spec) x))
+      (.append fetchers `(_spec/eval (quote ~spec) ~var-x))
       (if (instance? HyExpression spec)
         (do (setv var (gensym))
             (+= setter `(~var ~spec))
-            (.append fetchers `(~var x)))
-        (.append fetchers `(~spec x)))))
+            (.append fetchers `(~var ~var-x)))
+        (.append fetchers `(~spec ~var-x)))))
   `(do (import [minotauro.spec [_spec/eval]])
        ~setter
-       (fn [x] (and ~@fetchers))))
+       (fn [~var-x] (and ~@fetchers))))
 
 ;; Or Operator
 (defmacro spec/or [&rest specs]
-  (setv fetchers [])
-  (setv setter '(setv))
+  (setv fetchers []
+        setter '(setv)
+        var-x (gensym))
   (for [spec specs]
     (setv spec (macroexpand spec))
     (if (keyword? spec)
-      (.append fetchers `(_spec/eval (quote ~spec) x))
+      (.append fetchers `(_spec/eval (quote ~spec) ~var-x))
       (if (instance? HyExpression spec)
         (do (setv var (gensym))
             (+= setter `(~var ~spec))
-            (.append fetchers `(~var x)))
-        (.append fetchers `(~spec x)))))
+            (.append fetchers `(~var ~var-x)))
+        (.append fetchers `(~spec ~var-x)))))
   `(do (import [minotauro.spec [_spec/eval]])
        ~setter
-       (fn [x] (| ~@fetchers))))
-
-;;
-;(defmacro spec/keys [&rest args]
+       (fn [~var-x] (| ~@fetchers))))
 
 ;; Dictionary of keys and vals
 (defmacro spec/dict-of [keys vals]
   (setv keys (macroexpand keys)
-        vals (macroexpand vals))
-  (setv setter '(setv))
-  (setv kfetcher (if (keyword? keys)
-                     `(_spec/eval (quote ~keys) x)
+        vals (macroexpand vals)
+        var-x (gensym)
+        var (gensym))
+  (setv setter '(setv)
+        kfetcher (if (keyword? keys)
+                     `(_spec/eval (quote ~keys) ~var-x)
                      (if (instance? HyExpression keys)
                        (do (setv var (gensym))
                            (+= setter `(~var ~keys))
-                           `(~var x))
-                       `(~keys x))))
-  (setv vfetcher (if (keyword? vals)
-                     `(_spec/eval (quote ~vals) x)
+                           `(~var ~var-x))
+                       `(~keys ~var-x)))
+        vfetcher (if (keyword? vals)
+                     `(_spec/eval (quote ~vals) ~var-x)
                      (if (instance? HyExpression vals)
                        (do (setv var (gensym))
                            (+= setter `(~var ~vals))
-                           `(~var x))
-                       `(~vals x))))
+                           `(~var ~var-x))
+                       `(~vals ~var-x))))
   `(do (import [minotauro.spec [_spec/eval]])
        ~setter
-       (fn [dict-x] (and (not (some zero? (lfor x (.keys dict-x) ~kfetcher)))
-                         (not (some zero? (lfor x (.values dict-x) ~vfetcher)))))))
+       (fn [~var] (and (not (some zero? (lfor ~var-x (.keys ~var) ~kfetcher)))
+                       (not (some zero? (lfor ~var-x (.values ~var) ~vfetcher)))))))
 
 ;; Collection of spec
 (defmacro spec/coll-of [spec]
-  (setv spec (macroexpand spec))
-  (setv setter '(setv))
+  (setv spec (macroexpand spec)
+        setter '(setv)
+        var-x (gensym)
+        var (gensym))
   (setv fetcher (if (keyword? spec
-                     `(_spec/eval (quote ~spec) x)
+                     `(_spec/eval (quote ~spec) ~var-x)
                      (if (instance? HyExpression spec)
                        (do (setv var (gensym))
                            (+= setter `(~var ~spec))
-                           `(~var x))
-                       `(~spec x)))))
+                           `(~var ~var-x))
+                       `(~spec ~var-x)))))
   `(do (import [minotauro.spec [_spec/eval]])
        ~setter
-       (fn [col-x] (not (some zero? (lfor x col-x ~fetcher))))))
+       (fn [~var] (not (some zero? (lfor ~var-x ~var ~fetcher))))))
 
 ;;
 ;;(defmacro spec/cat [&rest specs])
 
 ;;
-(defmacro spec/components [&rest args]
-  (setv args (partition args :n 2))
-  (setv fetchers [])
-  (setv setter '(setv))
+(defmacro spec/keys [&rest args]
+  (setv args (partition args :n 2)
+        fetchers []
+        setter '(setv)
+        var-env (gensym)
+        var-x (gensym))
   (for [(, key spec) args]
     (setv spec (macroexpand spec))
     (if (keyword? spec)
-      (setv spec-check `(_spec/eval (quote ~spec) (get env (quote ~key))))
+      (setv spec-check `(_spec/eval (quote ~spec) (get ~var-env (quote ~key))))
       (if (instance? HyExpression spec)
         (do (setv var (gensym))
             (+= setter `(~var ~spec))
-            (setv spec-check `(~var (get env (quote ~key)))))
-        (setv spec-check `(~spec (get env (quote ~key))))))
-    (.append fetchers `(if (in (quote ~key) env) ~spec-check False)))
+            (setv spec-check `(~var (get ~var-env (quote ~key)))))
+        (setv spec-check `(~spec (get ~var-env (quote ~key))))))
+    (.append fetchers `(if (in (quote ~key) ~var-env) ~spec-check False)))
   `(do (import [minotauro.spec [_spec/eval]])
        ~setter
-       (fn [x]
-         (try (setv env (. x __dict__))
+       (fn [~var-x]
+         (try (setv ~var-env (. ~var-x __dict__))
+           (except [] (return False)))
+         (and ~@fetchers))))
+
+(defmacro spec/modules [&rest args]
+  (setv args (partition args :n 2)
+        fetchers []
+        setter '(setv)
+        var-env (gensym)
+        var-x (gensym))
+  (for [(, key spec) args]
+    (setv spec (macroexpand spec))
+    (setv key (mangle key))
+    (if (keyword? spec)
+      (setv spec-check `(_spec/eval (quote ~spec) (get ~var-env (quote ~key))))
+      (if (instance? HyExpression spec)
+        (do (setv var (gensym))
+            (+= setter `(~var ~spec))
+            (setv spec-check `(~var (get ~var-env (quote ~key)))))
+        (setv spec-check `(~spec (get ~var-env (quote ~key))))))
+    (.append fetchers `(if (in (quote ~key) ~var-env) ~spec-check False)))
+  `(do (import [minotauro.spec [_spec/eval]])
+       ~setter
+       (fn [~var-x]
+         (try (setv ~var-env (get (. ~var-x __dict__) "_modules"))
+           (except [] (return False)))
+         (and ~@fetchers))))
+
+(defmacro spec/parameters [&rest args]
+  (setv args (partition args :n 2)
+        fetchers []
+        setter '(setv)
+        var-env (gensym)
+        var-x (gensym))
+  (for [(, key spec) args]
+    (setv spec (macroexpand spec))
+    (setv key (mangle key))
+    (if (keyword? spec)
+      (setv spec-check `(_spec/eval (quote ~spec) (get ~var-env (quote ~key))))
+      (if (instance? HyExpression spec)
+        (do (setv var (gensym))
+            (+= setter `(~var ~spec))
+            (setv spec-check `(~var (get ~var-env (quote ~key)))))
+        (setv spec-check `(~spec (get ~var-env (quote ~key))))))
+    (.append fetchers `(if (in (quote ~key) ~var-env) ~spec-check False)))
+  `(do (import [minotauro.spec [_spec/eval]])
+       ~setter
+       (fn [~var-x]
+         (try (setv ~var-env (get (. ~var-x __dict__) "_parameters"))
            (except [] (return False)))
          (and ~@fetchers))))
 
@@ -187,8 +242,8 @@
 
 ;; Check if data is valid according to spec
 (defmacro spec/valid? [spec data]
-  (setv spec (macroexpand spec))
-  (setv setter '(setv))
+  (setv spec (macroexpand spec)
+        setter '(setv))
   (setv fetcher (if (keyword? spec)
                   `(_spec/eval (quote ~spec) ~data)
                   (if (instance? HyExpression spec)
@@ -202,8 +257,8 @@
 
 ;; Pass data if valid according to spec
 (defmacro spec/conform [spec data]
-  (setv spec (macroexpand spec))
-  (setv setter '(setv))
+  (setv spec (macroexpand spec)
+        setter '(setv))
   (setv fetcher (if (keyword? spec)
                   `(_spec/eval (quote ~spec) ~data)
                   (if (instance? HyExpression spec)
@@ -219,8 +274,8 @@
 
 ;; Return dictionary of valid? results on data according to spec
 (defmacro spec/explain [spec data]
-  (setv spec (macroexpand spec))
-  (setv setter '(setv))
+  (setv spec (macroexpand spec)
+        setter '(setv))
   (setv expr (if (keyword? spec)
                  `(_spec/eval (quote ~spec) ~data)
                  (if (instance? HyExpression spec)
@@ -241,14 +296,12 @@
 
 ;; Specification Generator
 (defmacro spec/gen [spec &rest args]
- (setv spec (macroexpand spec))
- (setv setter '(setv))
- (setv fetcher (if (keyword? spec)
-                 ((get (spec/gen-registry) spec) data)
-                 (if (instance? HyExpression spec)
-                   (do (setv var (gensym))
-                       (+= setter `(~var ~spec))
-                       `(~var ~data))
-                   `(~spec ~data))))
- (macroexpand `(do (setv data (~gen-fetcher ~@args))
-                   (spec/conform `spec data))))
+  (setv var-env (gensym)
+        var (gensym))
+  (setv conformed (macroexpand `(spec/conform ~spec ~var)))
+  `(do (import [minotauro.spec [spec/gen-registry]])
+       (setv ~var-env (spec/gen-registry))
+       (if (in ~spec ~var-env)
+         (do (setv ~var ((get (spec/gen-registry) ~spec) ~@args))
+             ~conformed)
+         (assert False "spec/gen: Generator not defined."))))

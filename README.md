@@ -45,7 +45,7 @@ then training a generated model on dummy data.
 ; Imports
 (import torch
         [torch.nn.functional :as F]
-        [torch.nn [Parameter]]
+        [torch.nn :as nn]
         [torch.optim [Adam]])
 
 ; Requires
@@ -55,7 +55,7 @@ then training a generated model on dummy data.
          [hy.contrib.walk [let]])
 
 ;; Define PyTorch Object Specifications
-(spec/def :parameter (fn [x] (instance? nn.Parameter x))
+(spec/def :sigmod (fn [x] (instance? nn.Module x))
           :rank1 (fn [x] (= (len (.size x)) 1))
           :rank2 (fn [x] (= (len (.size x)) 2)))
 
@@ -65,17 +65,17 @@ then training a generated model on dummy data.
 
 ;; Define Linear Specification
 (spec/def :Linear (spec/and :sigmod
-                    (spec/components w (spec/and :parameter :rank2)
-                                     b (spec/and :parameter :rank1))))
+                    (spec/parameters w :rank2
+                                     b :rank1)))
 
 ;; Define Linear Spec Generator
 (spec/defgen :Linear [f-in f-out]
   (Linear :w (-> (torch.empty (, f-in f-out))
                  (.normal_ :mean 0 :std 1.0)
-                 (Parameter :requires_grad True))
+                 (nn.Parameter :requires_grad True))
           :b (-> (torch.empty (, f-out))
                  (.normal_ :mean 0 :std 1.0)
-                 (Parameter :requires_grad True))))
+                 (nn.Parameter :requires_grad True))))
 
 ;; Single-layer Feed Forward Neural Network
 (defsigmod FeedForwardNN [x fc-in act fc-out]
@@ -83,8 +83,8 @@ then training a generated model on dummy data.
 
 ;; Define FeedForwardNN Specification
 (spec/def :FeedForwardNN (spec/and :sigmod
-                           (spec/components fc-in :Linear
-                                            fc-out :Linear)))
+                           (spec/modules fc-in :Linear
+                                         fc-out :Linear)))
 
 ;; Define FeedForwardNN Spec Generator
 (spec/defgen :FeedForwardNN [nb-inputs nb-hidden nb-outputs]
