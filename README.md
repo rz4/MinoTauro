@@ -1,12 +1,12 @@
 ![LOGO](images/name.png)
-# (setv MinoTauro (+ Hy PyTorch))
+# (spec/def :MinoTauro (spec/and Hy? PyTorch?))
 PyTorch Meta-Programming Using the Lisp Dialect Hy
 
-![Current Version](https://img.shields.io/badge/version-0.0.3-red.svg)
+![Current Version](https://img.shields.io/badge/version-0.0.4-red.svg)
 
 Lead Maintainer: [Rafael Zamora-Resendiz](https://github.com/rz4)
 
-**MinoTauro** is a Hy (0.17.0) library running Python (3.7) and PyTorch (1.0.1)
+**MinoTauro** is a Hy (0.17.0) library running Python (3.7) and PyTorch (1.3)
 for use in rapid low-level development of differential programs as well as
 for experiments in deep learning meta-programming.
 
@@ -14,32 +14,32 @@ for experiments in deep learning meta-programming.
 The dynamic execution of PyTorch operations allows enough flexibility to change
 computational graphs on the fly. This provides an avenue for Hy, a lisp-binding
 library for Python, to be used in establishing meta-programming practices in the
-field of deep learning (DL).
+field of differential learning (DL).
 
 While the final goal of this project is to build a framework for DL systems to have
 access to their code, this coding paradigm also shows promise at accelerating
 the development of new differential models while promoting formalized abstraction
 with type checking. A common trend in current DL packages is
 an abundance of object-oriented abstraction with packages such as Keras. This only reduces
-transparency to the already black-box nature of NN systems, and makes interpretability
-and reproducibility of models more difficult.
+transparency to the already black-box nature of neural network (NN) systems, and makes
+interpretability and reproducibility of models more difficult.
 
 In order to better understand DL models and allow for quick iterative design
 over novel or esoteric architectures, programmers require access to an
 environment which allows low-level definition of tensor graphs and provides methods
-to quickly access network components for debugging and analysis, while using Pytorch's
-backend to run on high performance machines. I believe that the added expressibility of Lisp
-in combination with PyTorch's functional API allows for this type of programming
+to quickly access network components for debugging and analysis, while still providing
+gpu-acceleration like that provided through PyTorch. I believe that the added expressibility
+of Lisp in combination with PyTorch's functional API allows for this type of programming
 paradigm, and provides DL researchers an extendable framework which cannot be
-matched by any other abstracted NN packages.
+matched by abstractions allowed in other NN packages.
 
 ## Features
 
-### Pytorch Models as Hy-Expressions
-Defining models using Hy-Expressions allows for functional design, quick iterative
+### Pytorch Models as S-Expressions
+Defining models using S-Expressions allows for functional design, quick iterative
 refactoring, and manipulation of model code using macros. Here is a short example
-of defining a single layer feed forward neural network using MinoTauro's tools and training
-the model on dummy data.
+of defining a single layer feed forward neural network using MinoTauro's tools and
+then training a generated model on dummy data.
 
 ```hy
 ; Imports
@@ -48,17 +48,28 @@ the model on dummy data.
         [torch.nn [Parameter]]
         [torch.optim [Adam]])
 
-; Macros
-(require [minotauro.sigmod [*]] ; defsigmod
-         [minotauro.thread [*]] ; Threading macros :{->,->>,*->,...}
+; Requires
+(require [minotauro.sigmod [*]]
+         [minotauro.thread [*]]
+         [minotauro.spec [*]]
          [hy.contrib.walk [let]])
 
-;; Linear Function Module
+;; Define PyTorch Object Specifications
+(spec/def :parameter (fn [x] (instance? nn.Parameter x))
+          :rank1 (fn [x] (= (len (.size x)) 1))
+          :rank2 (fn [x] (= (len (.size x)) 2)))
+
+;; Linear Operation
 (defsigmod Linear [x w b]
   (-> x (@ w) (+ b)))
 
-;; Linear Module Initializer
-(defn n/Linear [f-in f-out]
+;; Define Linear Specification
+(spec/def :Linear (spec/and :sigmod
+                    (spec/components w (spec/and :parameter :rank2)
+                                     b (spec/and :parameter :rank1))))
+
+;; Define Linear Spec Generator
+(spec/defgen :Linear [f-in f-out]
   (Linear :w (-> (torch.empty (, f-in f-out))
                  (.normal_ :mean 0 :std 1.0)
                  (Parameter :requires_grad True))
@@ -70,10 +81,15 @@ the model on dummy data.
 (defsigmod FeedForwardNN [x fc-in act fc-out]
   (-> x fc-in act fc-out))
 
-;; FFNN Module Initializer
-(defn n/FeedForwardNN [nb-inputs nb-hidden nb-outputs]
-  (FeedForwardNN :fc-in (n/Linear nb-inputs nb-hidden)
-                 :fc-out (n/Linear nb-hidden nb-outputs)
+;; Define FeedForwardNN Specification
+(spec/def :FeedForwardNN (spec/and :sigmod
+                           (spec/components fc-in :Linear
+                                            fc-out :Linear)))
+
+;; Define FeedForwardNN Spec Generator
+(spec/defgen :FeedForwardNN [nb-inputs nb-hidden nb-outputs]
+  (FeedForwardNN :fc-in (spec/gen :Linear nb-inputs nb-hidden)
+                 :fc-out (spec/gen :Linear nb-hidden nb-outputs)
                  :act torch.sigmoid))
 
 ;; main -
@@ -81,8 +97,9 @@ the model on dummy data.
 
   (print "Loading Model + Data...")
   (let [nb-inputs 10 nb-hidden 32 nb-outputs 1]
+
     ; Define Model + Optimizer
-    (setv model (n/FeedForwardNN nb-inputs nb-hidden nb-outputs)
+    (setv model (spec/gen :FeedForwardNN nb-inputs nb-hidden nb-outputs)
           optimizer (Adam (.parameters model) :lr 0.001 :weight_decay 1e-5))
 
     ; Generate Dummy Data
@@ -108,42 +125,42 @@ the model on dummy data.
       (.step optimizer))))
 ```
 
-MinoTauro works alongside PyTorch's abstractions providing a more functional style for
-defining computational graphs. MinoTauro also includes a library of specialized threading
-macros to define more complex models.
+MinoTauro works alongside PyTorch's abstractions and adds to it by allowing a more
+functional style for defining computational graphs. MinoTauro also includes a library of
+specialized threading macros to define more complex models.
 
 In the above example, we show the use of the macro `defsigmod` which takes its arguments and
 defines a PyTorch `Module` class. The `components` used by the module during forward
-propagation are defined in the argument list. The first expression following the argument list
-defines the `forward-procedure`. Thus, defining a PyTorch module takes the following form:
+propagation are defined in the argument list. The expressions following the argument list
+define the `forward-procedure`. Thus, defining a PyTorch module takes the following form:
 
 ```hy
-(defsigmod sigmod-name [component-0 ...] forward-procedure)
+(defsigmod sigmod-name [&rest components] forward-procedure)
 ```
 
 While PyTorch's module system uses a object oriented approach, MinoTauro's abstractions allows
-for functional manipulation. MinoTauro abstracts the PyTorch `Module` into the form `sigmod`.
-A `sigmod` can be thought of as a lambda expression with all the added benefits of PyTorch's
-`Module` system. Default `components` (or sub-modules in traditional PyTorch) can be
-binded to `sigmod`s when creating a new object. If bound during initialization, the
-default `components` will be used during the forward pass.
+for functional manipulation of tensor objects. MinoTauro abstracts the PyTorch `Module` into
+the form `sigmod`. A `sigmod` can be thought of as a lambda expression with all the added
+benefits of PyTorch's `Module` system. Default `components` (or sub-modules in
+traditional PyTorch) can be binded to `sigmod`s when creating a new object. If
+bound during initialization, the default `components` will be used during the forward pass.
 
-For example, the `n/Linear` function in the code example creates a new `Linear` module with custom
+For example, the `:Linear` specification in the code example generates a new `Linear` module with custom
 default-and-persistent tensors, weight `w` and bias `b`. If arguments `w` or `b` are not provided
-during the forward pass of `Linear`, then these default values are used.
+during the forward pass of `Linear`, then these default values are used instead.
 
 ### Anonymous Sigmods (i.e. Anonymous PyTorch Modules)
 Side effects make systems harder to debug and understand. The `sigmod` was designed to
-limit the `Module` to a formalized abstraction similar to the lambda. MinoTauro allows
+limit the `Module` to a formalized abstraction similar to lambda expressions. MinoTauro allows
 for anonymous PyTorch `Modules` through `sigmod`. For example, an anonymous Linear function
 can be defined as follows:
 
 ```hy
 ; Anonymous Linear
-(sigmod [x w b] (-> x (* w) (+ b)))
+(sigmod [x w b] (-> x (@ w) (+ b)))
 
 ; Forward Propagate
-((sigmod [x w b] (-> x (* w) (+ b))) my-x my-w my-b)
+((sigmod [x w b] (-> x (@ w) (+ b))) my-x my-w my-b)
 
 ```
 
@@ -152,7 +169,7 @@ a new object of a namespaced `sigmod` with `defsigmod`. Using the Linear functio
 
 ```hy
 ; Anonymous Linear with default w and b
-(bind (sigmod [x w b] (-> x (* w) (+ b)))
+(bind (sigmod [x w b] (-> x (@ w) (+ b)))
   :w (-> (torch.empty (, f-in f-out))
          (.normal_ :mean 0 :std 1.0)
          (Parameter :requires_grad True))
@@ -249,9 +266,10 @@ symbol plus an added `>` (i.e `*->>`, `|->>`, etc.)
 ## Spec (Clojure-like Specifications For PyTorch)
 Inspired from Clojure's `spec`, MinoTauro includes a similar system for predicate type checking.
 This package in conjunction with the formalized `sigmod` allows for runtime predicate checking of components,
-and other features common in Clojure's `spec` such as `conform`, `explain`, and `gen` (COMING SOON).
-These tools were added to MintoTauro to help debugging computational graphs, constrain model architecture
-to facilitate design collaboration, and to generate valid data/models. Here is a small peak into these features:
+and other features common in Clojure's `spec` such as `conform`, `explain`, and `gen`.
+These tools were added to MintoTauro to help debug computational graphs, constrain model architecture
+to facilitate design collaboration, and to easily generate valid data/models.
+Here is an example of defining a data specification and checking its validity:
 
 ```hy
 ; Macros
@@ -268,6 +286,19 @@ to facilitate design collaboration, and to generate valid data/models. Here is a
 
 ;; Returns -> True
 ```
+
+The neural network example at the beginning of this document, uses `spec` to
+define valid configurations of the `Linear` and `FeedForwardNN` sigmods.
+These `spec` definitions makes it simple and concise to test that modules
+have valid components. If a generator is defined for a `spec`, then
+the `spec` can be generated and will be tested to see if it conforms to the
+specification definition.
+
+The design decision to include a specification system for differential models
+is to promote the practice of archiving computational graphs into
+taxonomies. These can then be used to train model generators as
+it provides labels through predicate membership validity checks to more
+guide the exploration of the possible computational graph search space.
 
 ## Installation:
 
@@ -325,6 +356,3 @@ $ cd jupyter
 ```
 
 ## Documentation and Tutorials
-
-An introduction to Hytorch and some use cases can be found in the following
-Jupyter notebooks:
