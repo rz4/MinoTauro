@@ -297,14 +297,14 @@ specification definition.
 The design decision to include a specification system for differential models
 is to promote the practice of archiving computational graphs into
 taxonomies. These can then be used to train model generators as
-it provides labels through predicate membership validity checks to more
-guide the exploration of the possible computational graph search space.
+it provides labels through predicate membership validity checks to
+guide the exploration of the search space of possible computational graphs.
 
 ## Installation:
 
 #### Dependencies:
 
-The current project has been tested using Hy 0.16.0, PyTorch 1.0.1.post2 and
+The current project has been tested using Hy 0.17.0, PyTorch 1.3.1 and
 Python 3.7.
 
 The following ***Pip*** command can be used to install **MinoTauro**:
