@@ -1,11 +1,13 @@
 ;;; spec.hy
-;; Updated: 11/23/19
-;; File defines specfication system used for minotauro. Inspired from clojure's spec.
+;; Updated: 12/12/19
+;; File defines specfication system used in within the Minotauro developement environment.
+;; Inspired from clojure's spec. Includes many base operations from clojure.spec.alpha.
 ;;
 ;; Design Principles:
 ;;
 ;; - Spec should function soley as a macro-imported system.
-;; - Make sure to use gensym to prevent namespace collisions
+;; - Make sure to use gensym to prevent namespace collisions.
+;; - Provide useful debugging messages to accelerate PyTorch model implementation.
 ;;
 ;; To use macros, import using:
 ;; (require [minotauro.spec [*]])
@@ -16,21 +18,21 @@
 ; Macros
 (require [hy.contrib.walk [let]])
 
-;-----SPEC------
+;-----Spec Registry------
 
-;; Specifications Registry
+;; Returns Specification Registry
 (defn spec/registry []
   (global spec-registry)
   (try spec-registry
     (except [] (setv spec-registry {}) spec-registry)))
 
-;; Specifications Registry
+;; Returns Specification Generator Registry
 (defn spec/gen-registry []
   (global gen-spec-registry)
   (try gen-spec-registry
     (except [] (setv gen-spec-registry {}) gen-spec-registry)))
 
-;; Conformed Specification Temporary Registry
+;; Returns Conformed Specification Temporary Registry
 (defn _spec/conform-registry [&optional [reset False]]
   (global conform-registry)
   (try (if reset
@@ -38,15 +40,18 @@
            conform-registry)
     (except [] (setv conform-registry {}) conform-registry)))
 
-;; Specification Evaluator
+;; Specification Evaluator:
+; Fetches specification from registry and evaluates on data.
+; Adds evaluation value to conform registry.
 (defn _spec/eval [spec data &optional]
   (setv out ((get (spec/registry) spec) data))
   (assoc (_spec/conform-registry) spec out)
   out)
 
-;;---Definintions----
+;;-----Spec Definintion------
 
-;; Defines new specfication in registry
+;; Defines new specfication in registry:
+; Can take multiple specification pairs.
 (defmacro spec/def [&rest args]
   (setv args (partition args :n 2))
   (setv registers [])
@@ -63,9 +68,10 @@
   `(do (import [minotauro.spec [spec/gen-registry]])
        (assoc (spec/gen-registry) ~kw-namespace (fn ~args ~@body))))
 
-;;-----Rational Expressions-----
+;;-----Spec Construction-----
 
-;; Nand Operator
+;; Nand Operator:
+; Can take in any number of predicates or specification keys
 (defmacro spec/nand [&rest specs]
   (setv fetchers []
         setter '(setv)
@@ -83,7 +89,8 @@
        ~setter
        (fn [~var-x] (not (and ~@fetchers)))))
 
-;; And Operator
+;; And Operator:
+; Can take in any number of predicates or specification keys
 (defmacro spec/and [&rest specs]
   (setv fetchers []
         setter '(setv)
@@ -102,6 +109,7 @@
        (fn [~var-x] (and ~@fetchers))))
 
 ;; Or Operator
+; Can take in any number of predicates or specification keys
 (defmacro spec/or [&rest specs]
   (setv fetchers []
         setter '(setv)
@@ -119,7 +127,7 @@
        ~setter
        (fn [~var-x] (| ~@fetchers))))
 
-;; Dictionary of keys and vals
+;; Dictionary-of keys and vals Operator
 (defmacro spec/dict-of [keys vals]
   (setv keys (macroexpand keys)
         vals (macroexpand vals)
@@ -145,7 +153,7 @@
        (fn [~var] (and (not (some zero? (lfor ~var-x (.keys ~var) ~kfetcher)))
                        (not (some zero? (lfor ~var-x (.values ~var) ~vfetcher)))))))
 
-;; Collection of spec
+;; Collection-of Operator
 (defmacro spec/coll-of [spec]
   (setv spec (macroexpand spec)
         setter '(setv)
@@ -162,10 +170,7 @@
        ~setter
        (fn [~var] (not (some zero? (lfor ~var-x ~var ~fetcher))))))
 
-;;
-;;(defmacro spec/cat [&rest specs])
-
-;;
+;; Contains Keys Operator
 (defmacro spec/keys [&rest args]
   (setv args (partition args :n 2)
         fetchers []
@@ -189,6 +194,18 @@
            (except [] (return False)))
          (and ~@fetchers))))
 
+;;------REGEX Spec Construction------
+
+;;
+;(defmacro spec/cat [&rest specs])
+
+;;
+
+
+;;------PyTorch Dependent Spec------
+
+;; Define PyTorch Sub-Module Specifications
+; Returns False if data is not a PyTorch module.
 (defmacro spec/modules [&rest args]
   (setv args (partition args :n 2)
         fetchers []
@@ -209,10 +226,13 @@
   `(do (import [minotauro.spec [_spec/eval]])
        ~setter
        (fn [~var-x]
+         (when (not (instance? nn.Module x)) (return False))
          (try (setv ~var-env (get (. ~var-x __dict__) "_modules"))
            (except [] (return False)))
          (and ~@fetchers))))
 
+;; Define PyTorch Sub-Parameters Specifications
+; Returns False if data is not a PyTorch module.
 (defmacro spec/parameters [&rest args]
   (setv args (partition args :n 2)
         fetchers []
@@ -233,12 +253,13 @@
   `(do (import [minotauro.spec [_spec/eval]])
        ~setter
        (fn [~var-x]
+         (when (not (instance? nn.Module x)) (return False))
          (try (setv ~var-env (get (. ~var-x __dict__) "_parameters"))
            (except [] (return False)))
          (and ~@fetchers))))
 
 
-;;---Operators---
+;;---Spec Operators---
 
 ;; Check if data is valid according to spec
 (defmacro spec/valid? [spec data]
@@ -289,10 +310,21 @@
        ~expr
        (_spec/conform-registry)))
 
-;; Return dictionary of portions of data which conform to spec
+;; Return dictionary of predicate evaluations given spec and data.
 ;;(defmacro spec/describe [spec data])
 
-;-----Generation-----
+;;------Spec Assertions------
+
+;; Specification Assert
+;(defmacro spec/assert [])
+
+;; Enable or Disable Spec Asserts
+;(defmacro spec/check-asserts [flag])
+
+;; Check if Spec Asserts are enabled
+;(defmacro spec/check-asserts? [])
+
+;-----Specification Generation-----
 
 ;; Specification Generator
 (defmacro spec/gen [spec &rest args]

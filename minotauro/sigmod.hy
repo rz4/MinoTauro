@@ -1,16 +1,16 @@
 ;;; sigmod.hy
-;; Updated: 11/18/19
+;; Updated: 12/12/19
 ;; File defines PyTorch Module macros for HyTorch environment.
 ;;
 ;; To use macros, import using:
-;; (require [hytorch.sigmod [*]])
+;; (require [minotauro.sigmod [*]])
 
 ; Imports
 (import hy)
 
 ;-----MODULES------
 
-;; Module Definition
+;; Module "Sigmod" Definition
 (defmacro defsigmod [module-name components &rest forward]
 
   ; Generate default args expressions
@@ -36,7 +36,7 @@
            ~dispatcher
            ~@forward))))
 
-;; Anonymous Module Definition
+;; Anonymous Module "Sigmod" Definition
 (defmacro sigmod [components &rest forward]
 
   ; Generate default args expr
@@ -64,7 +64,7 @@
              ~dispatcher
              ~@forward)}))))
 
-;;
+;; Binds arguments to sigmod as components.
 (defmacro bind [sig &rest args]
   (setv var (gensym))
   `(do (setv ~var ~sig) (.__init__ ~var ~@args) ~var))

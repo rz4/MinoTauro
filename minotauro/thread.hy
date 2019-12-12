@@ -3,7 +3,7 @@
 ;; File defines threading macros for HyTorch environment.
 ;;
 ;; To use macros, import using:
-;; (require [hytorch.thread [*]])
+;; (require [minotauro.thread [*]])
 
 ; Imports
 (import hy)
