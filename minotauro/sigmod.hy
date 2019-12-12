@@ -1,6 +1,6 @@
 ;;; sigmod.hy
 ;; Updated: 12/12/19
-;; File defines PyTorch Module macros for HyTorch environment.
+;; File defines PyTorch Module macros for Minotauro development environment.
 ;;
 ;; To use macros, import using:
 ;; (require [minotauro.sigmod [*]])
