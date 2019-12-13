@@ -2,7 +2,7 @@
 # (spec/def :MinoTauro (spec/and Hy? PyTorch?))
 PyTorch Meta-Programming Using the Lisp Dialect Hy
 
-![Current Version](https://img.shields.io/badge/version-0.0.4-red.svg)
+![Current Version](https://img.shields.io/badge/version-0.0.5-red.svg)
 
 Lead Maintainer: [Rafael Zamora-Resendiz](https://github.com/rz4)
 
@@ -16,28 +16,29 @@ computational graphs on the fly. This provides an avenue for Hy, a lisp-binding
 library for Python, to be used in establishing meta-programming practices in the
 field of differential learning (DL).
 
-While the final goal of this project is to build a framework for DL systems to have
-access to their code, this coding paradigm also shows promise at accelerating
-the development of new differential models while promoting formalized abstraction
-with type checking. A common trend in current DL packages is
-an abundance of object-oriented abstraction with packages such as Keras. This only reduces
-transparency to the already black-box nature of neural network (NN) systems, and makes
-interpretability and reproducibility of models more difficult.
+While the final goal of this project is to build a framework which will allow 
+DL systems to have access to their code during runtime, this coding paradigm 
+also shows promise at accelerating the development of new differential models 
+while promoting formalized abstraction with predicate type checking. A common trend 
+in current DL packages is an abundance of opaque object-oriented abstraction with packages 
+such as Keras. This only reduces transparency to the already black-box nature of 
+neural network (NN) systems, and makes interpretability and reproducibility of models 
+more difficult.
 
 In order to better understand DL models and allow for quick iterative design
 over novel or esoteric architectures, programmers require access to an
 environment which allows low-level definition of tensor graphs and provides methods
 to quickly access network components for debugging and analysis, while still providing
-gpu-acceleration like that provided through PyTorch. I believe that the added expressibility
+gpu-acceleration. I believe that the added expressibility
 of Lisp in combination with PyTorch's functional API allows for this type of programming
 paradigm, and provides DL researchers an extendable framework which cannot be
-matched by abstractions allowed in other NN packages.
+matched by the restrictive set of abstractions allowed in contemporary NN packages.
 
 ## Features
 
 ### Pytorch Models as S-Expressions
 Defining models using S-Expressions allows for functional design, quick iterative
-refactoring, and manipulation of model code using macros. Here is a short example
+refactoring, and manipulation of model homoiconic code using macros. Here is a short example
 of defining a single layer feed forward neural network using MinoTauro's tools and
 then training a generated model on dummy data.
 
@@ -55,8 +56,7 @@ then training a generated model on dummy data.
          [hy.contrib.walk [let]])
 
 ;; Define PyTorch Object Specifications
-(spec/def :sigmod (fn [x] (instance? nn.Module x))
-          :rank1 (fn [x] (= (len (.size x)) 1))
+(spec/def :rank1 (fn [x] (= (len (.size x)) 1))
           :rank2 (fn [x] (= (len (.size x)) 2)))
 
 ;; Linear Operation
@@ -64,9 +64,8 @@ then training a generated model on dummy data.
   (-> x (@ w) (+ b)))
 
 ;; Define Linear Specification
-(spec/def :Linear (spec/and :sigmod
-                    (spec/parameters w :rank2
-                                     b :rank1)))
+(spec/def :Linear (spec/parameters w :rank2
+                                   b :rank1)))
 
 ;; Define Linear Spec Generator
 (spec/defgen :Linear [f-in f-out]
@@ -82,9 +81,8 @@ then training a generated model on dummy data.
   (-> x fc-in act fc-out))
 
 ;; Define FeedForwardNN Specification
-(spec/def :FeedForwardNN (spec/and :sigmod
-                           (spec/modules fc-in :Linear
-                                         fc-out :Linear)))
+(spec/def :FeedForwardNN (spec/modules fc-in :Linear
+                                       fc-out :Linear)))
 
 ;; Define FeedForwardNN Spec Generator
 (spec/defgen :FeedForwardNN [nb-inputs nb-hidden nb-outputs]
@@ -124,28 +122,38 @@ then training a generated model on dummy data.
       (.backward loss)
       (.step optimizer))))
 ```
+PyTorch auto-differential system
+works through definitions of models as `Modules` which are used to organize
+operations and dependent learnable parameters.
+MinoTauro extends PyTorch's abstractions by allowing a more
+functional definitions of computational graphs through `sigmod` expressions.  
+In short, Minotauro makes writing new modules as simple as writing a new lambda expression.
 
-MinoTauro works alongside PyTorch's abstractions and adds to it by allowing a more
-functional style for defining computational graphs. MinoTauro also includes a library of
-specialized threading macros to define more complex models.
+MinoTauro also includes a library of specialized threading macros to define more complex graphs.
+In addition, a specification system is included inspired from Clojure's `spec`. `spec` is a 
+powerful utility which allows predicate definitions of types for testing during development.
+`spec` is included in MinoTauro makes the constraints of a DL system more understandable, allows
+for descriptive debugging and makes generating valid data and models a breeze.
 
 In the above example, we show the use of the macro `defsigmod` which takes its arguments and
 defines a PyTorch `Module` class. The `components` used by the module during forward
 propagation are defined in the argument list. The expressions following the argument list
-define the `forward-procedure`. Thus, defining a PyTorch module takes the following form:
+defines the `forward-procedure`. Thus, defining a PyTorch module takes the following form:
 
 ```hy
-(defsigmod sigmod-name [&rest components] forward-procedure)
+(defsigmod module-name [&rest components] forward-procedure)
 ```
 
-While PyTorch's module system uses a object oriented approach, MinoTauro's abstractions allows
+While PyTorch's module system uses an object oriented approach, MinoTauro's abstractions allows
 for functional manipulation of tensor objects. MinoTauro abstracts the PyTorch `Module` into
 the form `sigmod`. A `sigmod` can be thought of as a lambda expression with all the added
-benefits of PyTorch's `Module` system. Default `components` (or sub-modules in
+benefits of PyTorch's `Module` system. This means all native PyTorch operations
+still work including moving PyTorch objects to and from devices and accessing sub-modules
+and parameters. Default `components` (or sub-modules in
 traditional PyTorch) can be binded to `sigmod`s when creating a new object. If
 bound during initialization, the default `components` will be used during the forward pass.
 
-For example, the `:Linear` specification in the code example generates a new `Linear` module with custom
+As an example, the `:Linear` specification in the code example generates a new `Linear` module with custom
 default-and-persistent tensors, weight `w` and bias `b`. If arguments `w` or `b` are not provided
 during the forward pass of `Linear`, then these default values are used instead.
 
@@ -291,14 +299,8 @@ The neural network example at the beginning of this document, uses `spec` to
 define valid configurations of the `Linear` and `FeedForwardNN` sigmods.
 These `spec` definitions makes it simple and concise to test that modules
 have valid components. If a generator is defined for a `spec`, then
-the `spec` can be generated and will be tested to see if it conforms to the
-specification definition.
-
-The design decision to include a specification system for differential models
-is to promote the practice of archiving computational graphs into
-taxonomies. These can then be used to train model generators as
-it provides labels through predicate membership validity checks to
-guide the exploration of the search space of possible computational graphs.
+the generated data will be tested against its specification and fail when 
+the data does not conform.
 
 ## Installation:
 
