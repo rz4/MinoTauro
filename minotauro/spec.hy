@@ -226,7 +226,7 @@
   `(do (import [minotauro.spec [_spec/eval]])
        ~setter
        (fn [~var-x]
-         (when (not (instance? nn.Module x)) (return False))
+         (when (not (instance? nn.Module ~var-x)) (return False))
          (try (setv ~var-env (get (. ~var-x __dict__) "_modules"))
            (except [] (return False)))
          (and ~@fetchers))))
@@ -253,7 +253,7 @@
   `(do (import [minotauro.spec [_spec/eval]])
        ~setter
        (fn [~var-x]
-         (when (not (instance? nn.Module x)) (return False))
+         (when (not (instance? nn.Module ~var-x)) (return False))
          (try (setv ~var-env (get (. ~var-x __dict__) "_parameters"))
            (except [] (return False)))
          (and ~@fetchers))))
