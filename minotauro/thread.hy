@@ -1,6 +1,6 @@
 ;;; thread.hy
 ;; Updated: 11/13/19
-;; File defines threading macros for HyTorch environment.
+;; File defines threading macros for Minotauro development environment.
 ;;
 ;; To use macros, import using:
 ;; (require [minotauro.thread [*]])
