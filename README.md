@@ -38,7 +38,7 @@ matched by the restrictive set of abstractions allowed in contemporary NN packag
 
 ### Pytorch Models as S-Expressions
 Defining models using S-Expressions allows for functional design, quick iterative
-refactoring, and manipulation of model homoiconic code using macros. Here is a short example
+refactoring, and manipulation of model code using macros. Here is a short example
 of defining a single layer feed forward neural network using MinoTauro's tools and
 then training a generated model on dummy data.
 
