@@ -16,18 +16,18 @@ computational graphs on the fly. This provides an avenue for Hy, a lisp-binding
 library for Python, to be used in establishing meta-programming practices in the
 field of differential learning (DL).
 
-While the final goal of this project is to build a framework which will allow 
-DL systems to have access to their code during runtime, this coding paradigm 
-also shows promise at accelerating the development of new differential models 
-while promoting formalized abstraction with predicate type checking. A common trend 
-in current DL packages is an abundance of opaque object-oriented abstraction with packages 
-such as Keras. This only reduces transparency to the already black-box nature of 
-neural network (NN) systems, and makes interpretability and reproducibility of models 
+While the final goal of this project is to build a framework which will allow
+DL systems to have access to their code during runtime, this coding paradigm
+also shows promise at accelerating the development of new differential models
+while promoting formalized abstraction with predicate type checking. A common trend
+in current DL packages is an abundance of opaque object-oriented abstraction with packages
+such as Keras. This only reduces transparency to the already black-box nature of
+neural network (NN) systems, and makes interpretability and reproducibility of models
 more difficult.
 
 In order to better understand DL models and allow for quick iterative design
 over novel or esoteric architectures, programmers require access to an
-environment which allows low-level definition of tensor graphs and provides methods
+environment which allows low-level definition of computational graphs and provides methods
 to quickly access network components for debugging and analysis, while still providing
 gpu-acceleration. I believe that the added expressibility
 of Lisp in combination with PyTorch's functional API allows for this type of programming
@@ -50,45 +50,52 @@ then training a generated model on dummy data.
         [torch.optim [Adam]])
 
 ; Requires
-(require [minotauro.sigmod [*]]
+(require [minotauro.mu [*]]
          [minotauro.thread [*]]
          [minotauro.spec [*]]
          [hy.contrib.walk [let]])
 
 ;; Define PyTorch Object Specifications
-(spec/def :rank1 (fn [x] (= (len (.size x)) 1))
-          :rank2 (fn [x] (= (len (.size x)) 2)))
+(spec/def :tensor (fn [x] (instance? torch.Tensor x))
+          :learnable (fn [x] x.requires_grad)
+          :rank1 (fn [x] (-> x .size len (= 1)))
+          :rank2 (fn [x] (-> x .size len (= 2)))
+          :nonlinear (fn [x] (in x [torch.sigmoid torch.relu torch.tan])))
 
 ;; Linear Operation
-(defsigmod Linear [x w b]
-  (-> x (@ w) (+ b)))
+(defmu LinearTransformation [x weights bias]
+  (-> x (@ weights) (+ bias)))
 
 ;; Define Linear Specification
-(spec/def :Linear (spec/parameters w :rank2
-                                   b :rank1)))
+(spec/def :LearnableLinear (spec/parameters weights (spec/and :tensor :learnable :rank2)
+                                            bias    (spec/and :tensor :learnable :rank1)))
 
 ;; Define Linear Spec Generator
-(spec/defgen :Linear [f-in f-out]
-  (Linear :w (-> (torch.empty (, f-in f-out))
-                 (.normal_ :mean 0 :std 1.0)
-                 (nn.Parameter :requires_grad True))
-          :b (-> (torch.empty (, f-out))
-                 (.normal_ :mean 0 :std 1.0)
-                 (nn.Parameter :requires_grad True))))
+(spec/defgen :LearnableLinear [f-in f-out]
+  (LinearTransformation :weights (-> (torch.empty (, f-in f-out))
+                                     (.normal_ :mean 0 :std 1.0)
+                                     (nn.Parameter :requires_grad True))
+                        :bias    (-> (torch.empty (, f-out))
+                                     (.normal_ :mean 0 :std 1.0)
+                                     (nn.Parameter :requires_grad True))))
 
 ;; Single-layer Feed Forward Neural Network
-(defsigmod FeedForwardNN [x fc-in act fc-out]
-  (-> x fc-in act fc-out))
+(defmu FeedForwardNeuralNetwork [x linear-to-hidden linear-to-output activation]
+  (-> x
+      linear-to-hidden
+      activation
+      linear-to-output))
 
-;; Define FeedForwardNN Specification
-(spec/def :FeedForwardNN (spec/modules fc-in :Linear
-                                       fc-out :Linear)))
+;; Define FeedForwardNeuralNetwork Specification
+(spec/def :FeedForwardNeuralNetwork (spec/and (spec/modules linear-to-hidden :LearnableLinear
+                                                            linear-to-output :LearnableLinear)
+                                              (spec/keys activation :nonlinear)))
 
-;; Define FeedForwardNN Spec Generator
-(spec/defgen :FeedForwardNN [nb-inputs nb-hidden nb-outputs]
-  (FeedForwardNN :fc-in (spec/gen :Linear nb-inputs nb-hidden)
-                 :fc-out (spec/gen :Linear nb-hidden nb-outputs)
-                 :act torch.sigmoid))
+;; Define FeedForwardNeuralNetwork Spec Generator
+(spec/defgen :FeedForwardNeuralNetwork [nb-inputs nb-hidden nb-outputs]
+  (FeedForwardNeuralNetwork :linear-to-hidden (spec/gen :LearnableLinear nb-inputs nb-hidden)
+                            :linear-to-output (spec/gen :LearnableLinear nb-hidden nb-outputs)
+                            :activation torch.sigmoid))
 
 ;; main -
 (defmain [&rest _]
@@ -97,7 +104,7 @@ then training a generated model on dummy data.
   (let [nb-inputs 10 nb-hidden 32 nb-outputs 1]
 
     ; Define Model + Optimizer
-    (setv model (spec/gen :FeedForwardNN nb-inputs nb-hidden nb-outputs)
+    (setv model (spec/gen :FeedForwardNeuralNetwork nb-inputs nb-hidden nb-outputs)
           optimizer (Adam (.parameters model) :lr 0.001 :weight_decay 1e-5))
 
     ; Generate Dummy Data
@@ -125,59 +132,88 @@ then training a generated model on dummy data.
 PyTorch auto-differential system
 works through definitions of models as `Modules` which are used to organize
 operations and dependent learnable parameters.
-MinoTauro extends PyTorch's abstractions by allowing a more
-functional definitions of computational graphs through `sigmod` expressions.  
+MinoTauro extends PyTorch's abstractions by allowing more
+functional-style for defining computational graphs through `mu` expressions.  
 In short, Minotauro makes writing new modules as simple as writing a new lambda expression.
 
 MinoTauro also includes a library of specialized threading macros to define more complex graphs.
-In addition, a specification system is included inspired from Clojure's `spec`. `spec` is a 
+In addition, a specification system is included inspired from Clojure's `spec`. `spec` is a
 powerful utility which allows predicate definitions of types for testing during development.
 `spec` is included in MinoTauro makes the constraints of a DL system more understandable, allows
 for descriptive debugging and makes generating valid data and models a breeze.
 
-In the above example, we show the use of the macro `defsigmod` which takes its arguments and
+In the above example, we show the use of the macro `defmu` which takes its arguments and
 defines a PyTorch `Module` class. The `components` used by the module during forward
 propagation are defined in the argument list. The expressions following the argument list
 defines the `forward-procedure`. Thus, defining a PyTorch module takes the following form:
 
 ```hy
-(defsigmod module-name [&rest components] forward-procedure)
+(defmu module-name [&rest components] forward-procedure)
 ```
 
 While PyTorch's module system uses an object oriented approach, MinoTauro's abstractions allows
 for functional manipulation of tensor objects. MinoTauro abstracts the PyTorch `Module` into
-the form `sigmod`. A `sigmod` can be thought of as a lambda expression with all the added
+the form `mu`. A `mu` can be thought of as a lambda expression with all the added
 benefits of PyTorch's `Module` system. This means all native PyTorch operations
 still work including moving PyTorch objects to and from devices and accessing sub-modules
 and parameters. Default `components` (or sub-modules in
-traditional PyTorch) can be binded to `sigmod`s when creating a new object. If
+traditional PyTorch) can be binded to `mu`s when creating a new object. If
 bound during initialization, the default `components` will be used during the forward pass.
 
-As an example, the `:Linear` specification in the code example generates a new `Linear` module with custom
-default-and-persistent tensors, weight `w` and bias `b`. If arguments `w` or `b` are not provided
-during the forward pass of `Linear`, then these default values are used instead.
+As an example, the `:LearnableLinear` specification in the code example generates a new `LinearTransformation` module with custom
+default-and-persistent tensors, `weights` and `bias`. If arguments `weights` or `bias` are not provided
+during the forward pass of `LinearTransformation`, then these default values are used instead.
+
+We can view a representation of the computational graph by printing the model.
+```
+(print model)
+
+; Returns
+
+FeedForwardNeuralNetwork(
+  C: [x linear-to-hidden linear-to-output activation]
+  λ: (linear-to-output (activation (linear-to-hidden x)))
+
+  (linear_to_hidden): LinearTransformation(
+    C: [x weights bias]
+    λ: (+ (@ x weights) bias)
+
+    weights: Parameter(size: [10, 32] dtype: torch.float32)
+    bias: Parameter(size: [32] dtype: torch.float32)
+
+  )
+  (linear_to_output): LinearTransformation(
+    C: [x weights bias]
+    λ: (+ (@ x weights) bias)
+
+    weights: Parameter(size: [32, 1] dtype: torch.float32)
+    bias: Parameter(size: [1] dtype: torch.float32)
+
+  )
+)
+```
 
 ### Anonymous Sigmods (i.e. Anonymous PyTorch Modules)
-Side effects make systems harder to debug and understand. The `sigmod` was designed to
+Side effects make systems harder to debug and understand. The `mu` was designed to
 limit the `Module` to a formalized abstraction similar to lambda expressions. MinoTauro allows
-for anonymous PyTorch `Modules` through `sigmod`. For example, an anonymous Linear function
+for anonymous PyTorch `Modules` through `mu`. For example, an anonymous Linear function
 can be defined as follows:
 
 ```hy
 ; Anonymous Linear
-(sigmod [x w b] (-> x (@ w) (+ b)))
+(mu [x w b] (-> x (@ w) (+ b)))
 
 ; Forward Propagate
-((sigmod [x w b] (-> x (@ w) (+ b))) my-x my-w my-b)
+((mu [x w b] (-> x (@ w) (+ b))) my-x my-w my-b)
 
 ```
 
 MinoTauro's macro `bind` can be used to assign default values to components same as when creating
-a new object of a namespaced `sigmod` with `defsigmod`. Using the Linear function as an example again:
+a new object of a namespaced `mu` with `defmu`. Using the Linear function as an example again:
 
 ```hy
 ; Anonymous Linear with default w and b
-(bind (sigmod [x w b] (-> x (@ w) (+ b)))
+(bind (mu [x w b] (-> x (@ w) (+ b)))
   :w (-> (torch.empty (, f-in f-out))
          (.normal_ :mean 0 :std 1.0)
          (Parameter :requires_grad True))
@@ -199,6 +235,7 @@ a new object of a namespaced `sigmod` with `defsigmod`. Using the Linear functio
 ### Hy-Expression Threading
 MinoTauro contains custom threading macros to help define more complex network
 architectures. Threading macros are common to other function-heavy lisp languages such as Clojure.
+Threading here refers to the practice of passing arguments through expression not concurrency.
 The simplest comes in the form of the thread first macro `->`, which inserts each expression into the
 next expression’s first argument place. The compliment of this macro which inserts the expressions
 into the last argument place is `->>`. The following are various threading macros available in
@@ -273,7 +310,7 @@ symbol plus an added `>` (i.e `*->>`, `|->>`, etc.)
 
 ## Spec (Clojure-like Specifications For PyTorch)
 Inspired from Clojure's `spec`, MinoTauro includes a similar system for predicate type checking.
-This package in conjunction with the formalized `sigmod` allows for runtime predicate checking of components,
+This package in conjunction with the formalized `mu` allows for runtime predicate checking of components,
 and other features common in Clojure's `spec` such as `conform`, `explain`, and `gen`.
 These tools were added to MintoTauro to help debug computational graphs, constrain model architecture
 to facilitate design collaboration, and to easily generate valid data/models.
@@ -296,10 +333,10 @@ Here is an example of defining a data specification and checking its validity:
 ```
 
 The neural network example at the beginning of this document, uses `spec` to
-define valid configurations of the `Linear` and `FeedForwardNN` sigmods.
+define valid configurations of the `LearnableLinear` and `FeedForwardNeuralNetwork` mus.
 These `spec` definitions makes it simple and concise to test that modules
 have valid components. If a generator is defined for a `spec`, then
-the generated data will be tested against its specification and fail when 
+the generated data will be tested against its specification and fail when
 the data does not conform.
 
 ## Installation:

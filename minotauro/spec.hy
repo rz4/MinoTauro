@@ -1,5 +1,5 @@
 ;;; spec.hy
-;; Updated: 12/12/19
+;; Updated: 1/5/20
 ;; File defines specfication system used in within the Minotauro developement environment.
 ;; Inspired from clojure's spec. Includes many base operations from clojure.spec.alpha.
 ;;
@@ -13,66 +13,143 @@
 ;; (require [minotauro.spec [*]])
 
 ; Imports
-(import hy)
+(import hy [hy.contrib.hy-repr [hy-repr]])
 
 ; Macros
 (require [hy.contrib.walk [let]])
 
 ;-----Spec Registry------
 
-;; Returns Specification Registry
-(defn spec/registry []
-  (global spec-registry)
-  (try spec-registry
-    (except [] (setv spec-registry {}) spec-registry)))
+(defn spec/data-registry []
+  """ Accesses Data Specs Registry:
+  Returns namespace mapping of kewords to predicate specifications.
+  """
+  (global data-spec-registry)
+  (try data-spec-registry
+    (except [] (setv data-spec-registry {}) data-spec-registry)))
 
-;; Returns Specification Generator Registry
+(defn spec/fun-registry []
+  """ Accesses Function Spec Registry:
+  Returns namespace mapping of keywords to predicate specifications.
+  """
+  (global fun-spec-registry)
+  (try fun-spec-registry
+    (except [] (setv fun-spec-registry {}) fun-spec-registry)))
+
 (defn spec/gen-registry []
+  """ Accesses Generator Spec Registry:
+  Returns namespace mapping of keywords to generator functions.
+  """
   (global gen-spec-registry)
   (try gen-spec-registry
     (except [] (setv gen-spec-registry {}) gen-spec-registry)))
 
-;; Returns Conformed Specification Temporary Registry
 (defn _spec/conform-registry [&optional [reset False]]
+  """ Accesses Conform Spec Registry:
+  Returns namespace mapping of keywords to valid? results since last reset.
+  Hidden from outside modules.
+  """
   (global conform-registry)
   (try (if reset
            (do (setv conform-registry {}) conform-registry)
            conform-registry)
     (except [] (setv conform-registry {}) conform-registry)))
 
-;; Specification Evaluator:
-; Fetches specification from registry and evaluates on data.
-; Adds evaluation value to conform registry.
-(defn _spec/eval [spec data &optional]
-  (setv out ((get (spec/registry) spec) data))
+(defn _spec/eval [spec data &rest fun-args]
+  """ Evaulates Data Given Specification:
+  Used to return specification predicate output while adding results to the conform-registry.
+  If &rest arguments are provided, assume a functional specification check.
+  """
+  (setv out (if (> (len fun-args) 0)
+              ((get (spec/fun-registry) spec) data fun-args)
+              ((get (spec/data-registry) spec) data)))
   (assoc (_spec/conform-registry) spec out)
   out)
 
 ;;-----Spec Definintion------
 
-;; Defines new specfication in registry:
-; Can take multiple specification pairs.
 (defmacro spec/def [&rest args]
+  """ Define New Data Specifications Macro:
+  Takes in pairs of HyKeywords and predicate functions.
+  Predicate functions can be constructed using specification macros provided
+  in the project or through lambda expressions.
+  Macros will be expanded and the output predicate functions are assigned to the Keyword.
+  """
+  ; Get keyword/predicate pairs.
+  (assert (even? (len args)) "Args must be paired. Found odd number of arguments.")
   (setv args (partition args :n 2))
+
+  ; Construct all register setters
   (setv registers [])
   (for [(, kw-namespace predicate) args]
+    (assert (and (instance? HyKeyword kw-namespace) (instance? HyExpression predicate))
+       (.format "Arg pair must be of HyKeywords and HyExpressions. Found {kw} and {expr}."
+         :kw (name (type kw-namespace))
+         :expr (name (type predicate))))
     (setv predicate (macroexpand predicate))
-    (.append registers `(assoc (spec/registry) ~kw-namespace ~predicate)))
-  (assert (keyword? kw-namespace) "spec/ArgumentError: First argument must be a HyKeyword.")
-  `(do (import [minotauro.spec [spec/registry]])
+    (if (instance? HyKeyword predicate)
+      (.append registers `(assoc (spec/data-registry) ~kw-namespace (get (spec/data-registry) ~predicate)))
+      (.append registers `(assoc (spec/data-registry) ~kw-namespace ~predicate))))
+
+  ; Returned Expression
+  `(do (import [minotauro.spec [spec/data-registry]])
        ~@registers))
 
-;; Defines new specfication generator in registry
+(defmacro spec/defun [kw-namespace args returns]
+  """ Define New Function Specification Macro:
+  Creates a functional test predicate assigned to a HyKeyword.
+  The functional test predicate is composed of a predicate for the arguments of the function and
+  a predicate for the returned values of the function. These are the args and returns parameters
+  respectively.
+  """
+  ; Fetch Specifications
+  (setv setter '(setv)
+        var-args (gensym)
+        var-returns (gensym)
+        var-x (gensym)
+        var-params (gensym))
+  (if (instance? HyKeyword args)
+      (+= setter `(~var-args (get (spec/data-registry) ~args)))
+      (+= setter `(~var-args ~args)))
+  (if (instance? HyKeyword returns)
+      (+= setter `(~var-returns (get (spec/data-registry) ~returns)))
+      (+= setter `(~var-returns ~returns)))
+
+  ; Returned Expression
+  `(do (import [minotauro.spec [spec/fun-registry]])
+       ~setter
+       (assoc (spec/fun-registry) ~kw-namespace
+          (fn [~var-x ~var-params]
+            (setv form [~var-x])
+            (for [arg ~var-params] (+= form arg))
+            (setv valid-args? (~var-args ~var-params)
+                  valid-returns? (~var-returns (eval (HyExpression form))))
+            (and valid-args? valid-returns?)))))
+
 (defmacro spec/defgen [kw-namespace args &rest body]
-  (assert (keyword? kw-namespace) "spec/ArgumentError: First argument must be a HyKeyword.")
+  """ Define New Generator For Data Specification Macro:
+  """
+  ; Assert Checks
+  (assert (instance? HyKeyword kw-namespace) "Arg 1 must be a HyKeyword.")
+  (assert (instance? HyList args)
+    (.format "Arg 2 must be HyList. Found {t}" :t (name (type require-components))))
+  (assert (every? (fn [x] (instance? HySymbol x)) args)
+    "Arg 2 must be HyList of HySymbols.")
+  (assert (> (len body) 0)
+    "Body must be defined.")
+
+  ; Returned Expression
   `(do (import [minotauro.spec [spec/gen-registry]])
        (assoc (spec/gen-registry) ~kw-namespace (fn ~args ~@body))))
 
 ;;-----Spec Construction-----
 
-;; Nand Operator:
-; Can take in any number of predicates or specification keys
 (defmacro spec/nand [&rest specs]
+  """Nand Operator Predicate Composition Macro:
+  Constructs a Nand operation predicate out of specification predicates in arguments.
+
+  Can take in any number of predicates or specification HyKeywords.
+  """
   (setv fetchers []
         setter '(setv)
         var-x (gensym))
@@ -89,9 +166,12 @@
        ~setter
        (fn [~var-x] (not (and ~@fetchers)))))
 
-;; And Operator:
-; Can take in any number of predicates or specification keys
 (defmacro spec/and [&rest specs]
+  """And Operator Predicate Composition Macro:
+  Constructs a And operation predicate out of specification predicates in arguments.
+
+  Can take in any number of predicates or specification HyKeywords.
+  """
   (setv fetchers []
         setter '(setv)
         var-x (gensym))
@@ -108,9 +188,12 @@
        ~setter
        (fn [~var-x] (and ~@fetchers))))
 
-;; Or Operator
-; Can take in any number of predicates or specification keys
 (defmacro spec/or [&rest specs]
+  """Or Operator Predicate Composition Macro:
+  Constructs a Or operation predicate out of specification predicates in arguments.
+
+  Can take in any number of predicates or specification HyKeywords.
+  """
   (setv fetchers []
         setter '(setv)
         var-x (gensym))
@@ -127,8 +210,11 @@
        ~setter
        (fn [~var-x] (| ~@fetchers))))
 
-;; Dictionary-of keys and vals Operator
 (defmacro spec/dict-of [keys vals]
+  """Dictionary-Of Predicate Composition Macro:
+  Constructs a predicate to check if data is a dictionary of specifications
+  defined for arguments keys and vals.
+  """
   (setv keys (macroexpand keys)
         vals (macroexpand vals)
         var-x (gensym)
@@ -197,8 +283,22 @@
 ;;------REGEX Spec Construction------
 
 ;;
-;(defmacro spec/cat [&rest specs])
-
+(defmacro spec/cat [&rest specs]
+  (setv fetchers []
+        setter '(setv)
+        var-x (gensym))
+  (for [spec specs]
+    (setv spec (macroexpand spec))
+    (if (keyword? spec)
+      (.append fetchers `(_spec/eval (quote ~spec) ~var-x))
+      (if (instance? HyExpression spec)
+        (do (setv var (gensym))
+            (+= setter `(~var ~spec))
+            (.append fetchers `(~var ~var-x)))
+        (.append fetchers `(~spec ~var-x)))))
+  `(do (import [minotauro.spec [_spec/eval]])
+       ~setter
+       (fn [~var-x] (and ~@fetchers))))
 ;;
 
 
@@ -328,12 +428,14 @@
 
 ;; Specification Generator
 (defmacro spec/gen [spec &rest args]
-  (setv var-env (gensym)
+  (setv var-env-gen (gensym)
+        var-env-data (gensym)
         var (gensym))
   (setv conformed (macroexpand `(spec/conform ~spec ~var)))
-  `(do (import [minotauro.spec [spec/gen-registry]])
-       (setv ~var-env (spec/gen-registry))
-       (if (in ~spec ~var-env)
-         (do (setv ~var ((get (spec/gen-registry) ~spec) ~@args))
-             ~conformed)
-         (assert False "spec/gen: Generator not defined."))))
+  `(do (import [minotauro.spec [spec/gen-registry spec/data-registry]])
+       (setv ~var-env-gen (spec/gen-registry)
+             ~var-env-data (spec/data-registry))
+       (assert (in ~spec ~var-env-gen) "Generator for Spec is not defined.")
+       (if (in ~spec ~var-env-data)
+         (do (setv ~var ((get (spec/gen-registry) ~spec) ~@args)) ~conformed)
+         ((get (spec/gen-registry) ~spec) ~@args))))

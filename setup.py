@@ -6,11 +6,11 @@ from setuptools import setup, find_packages
 
 setup(
     name="minotauro",
-    version="0.0.0",
+    version="0.0.5",
     description="PyTorch Meta-Programming Using the Lisp Dialect Hy",
     license="MIT",
-    keywords="Hy Pytorch",
-    packages=find_packages(exclude=["images", "jupytor", "notebooks"]),
+    keywords="Hy PyTorch Meta",
+    packages=find_packages(exclude=["images", "jupyter", "notebooks"]),
     package_data={
         'minotauro': ['*.hy',],
     },

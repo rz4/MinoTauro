@@ -1,6 +1,7 @@
 ;;; thread.hy
-;; Updated: 11/13/19
+;; Updated: 1/4/2020
 ;; File defines threading macros for Minotauro development environment.
+;;
 ;;
 ;; To use macros, import using:
 ;; (require [minotauro.thread [*]])
@@ -8,10 +9,10 @@
 ; Imports
 (import hy)
 
-;; Overloaded thread first macro:
-;; Macroexpands all forms including head prior to threading.
-;;
 (defmacro -> [head &rest forms]
+  """Overloaded thread-first macro:
+  Macroexpands all forms including head prior to threading.
+  """
   (setv ret (macroexpand head))
   (for [form forms]
     (setv ret (if (isinstance form HyExpression)
@@ -19,31 +20,31 @@
                   (macroexpand `(~form ~ret)))))
   ret)
 
-;; Overloaded thread last macro:
-;; Macroexpands all forms including head prior to threading.
-;;
 (defmacro ->> [head &rest forms]
-    (setv ret (macroexpand head))
-    (for [form forms]
-      (setv ret (if (isinstance form HyExpression)
-                    (macroexpand `(~(first form) ~@(rest form) ~ret))
-                    (macroexpand `(~form ~ret)))))
-    ret)
+  """Overloaded thread-last macro:
+  Macroexpands all forms including head prior to threading.
+  """
+  (setv ret (macroexpand head))
+  (for [form forms]
+    (setv ret (if (isinstance form HyExpression)
+                  (macroexpand `(~(first form) ~@(rest form) ~ret))
+                  (macroexpand `(~form ~ret)))))
+  ret)
 
-;; Broadcast-thread first macro:
-;; Variation of the thread first macro which threads listed forms as the first
-;; n arguments in the next form.
-;; Example:
-;;
-;; (*-> [x y] +) : (+ x y)
-;;
-;; When a form precedes a list of forms broadcast the preceding form to each
-;; form in the list.
-;; Example:
-;;
-;; (*-> x [inc decr]) : [(inc x) (decr x)]
-;;
 (defmacro *-> [head &rest forms]
+  """ Broadcast-thread first macro:
+  Variation of the thread first macro which threads listed forms as the first
+  n arguments in the next form.
+  Example: (*-> [x y] +)
+
+  Returns: (+ x y)
+
+  When a form precedes a list of forms broadcast the preceding form to each
+  form in the list.
+  Example: (*-> x [inc decr])
+
+  Returns: [(inc x) (decr x)]
+  """
   (setv ret (macroexpand head))
   (for [form forms]
     (setv ret (macroexpand
@@ -63,11 +64,11 @@
                       `(~form ~ret)))))))
   ret)
 
-;; Broadcast-thread last macro:
-;; Variation of the thread last macro which threads listed forms as
-;; the last n arguments in the next form.
-;;
 (defmacro *->> [head &rest forms]
+  """Broadcast-thread last macro:
+  Variation of the thread last macro which threads listed forms as
+  the last n arguments in the next form.
+  """
   (setv ret (macroexpand head))
   (for [form forms]
     (setv ret (macroexpand
@@ -87,18 +88,18 @@
                       `(~form ~ret)))))))
   ret)
 
-;; Inline-thread first macro:
-;; Variation of the thread first macro which threads listed forms in parallel.
-;; Example:
-;;
-;; (|-> [x y] [inc decr]) : [(incr x) (decr y)]
-;;
-;; If a list of forms precedes a single form, thread form along each branch.
-;; Example:
-;;
-;; (|-> [x y] (+ 1)) : [(+ x 1) (+ y 1)]
-
 (defmacro |-> [head &rest forms]
+  """Inline-thread first macro:
+  Variation of the thread first macro which threads listed forms in parallel.
+  Example: (|-> [x y] [inc decr])
+
+  Returns: [(incr x) (decr y)]
+
+  If a list of forms precedes a single form, thread form along each branch.
+  Example: (|-> [x y] (+ 1))
+
+  Returns: [(+ x 1) (+ y 1)]
+  """
   (setv ret (macroexpand head))
   (for [form forms]
     (setv ret (macroexpand
@@ -126,10 +127,10 @@
                                 `(~form ~ret))]))))
   ret)
 
-;; Inline-thread last macro:
-;; Variation of the thread last macro which threads listed forms in parallel.
-;;
 (defmacro |->> [head &rest forms]
+  """Inline-thread last macro:
+  Variation of the thread last macro which threads listed forms in parallel.
+  """
   (setv ret (macroexpand head))
   (for [form forms]
     (setv ret (macroexpand
@@ -157,15 +158,15 @@
                                 `(~form ~ret))]))))
   ret)
 
-;; Setv-thread first macro:
-;; Variation of the thread first macro which stores the result at each form thread.
-;; Used when its more effcient to pass pointer of the evaluated form to next form operation instead
-;; of unevaluated form. Gensym used for variable name to prvent namespace collisions.
-;; Example:
-;;
-;; (=-> (+ x 1) incr) : (do (setv g!123 (+ x 1)) (setv g!123 (incr g!123)) g!123)
-
 (defmacro =-> [head &rest forms]
+  """Setv-thread first macro:
+  Variation of the thread first macro which stores the result at each form thread.
+  Used when its more effcient to pass pointer of the evaluated form to next form operation instead
+  of unevaluated form. Gensym used for variable name to prvent namespace collisions.
+  Example: (=-> (+ x 1) incr)
+
+  Returns: (do (setv g!123 (+ x 1)) (setv g!123 (incr g!123)) g!123)
+  """
   (setv ret '(do))
   (setv var (gensym))
   (.append ret `(setv ~var ~(macroexpand head)))
@@ -178,10 +179,10 @@
   (.append ret var)
   ret)
 
-;; Setv-thread last macro:
-;; Variation of the thread last macro which stores the result at each form thread.
-;;
 (defmacro =->> [&rest forms]
+  """Setv-thread last macro:
+  Variation of the thread last macro which stores the result at each form thread.
+  """
   (setv ret '(do))
   (setv var (gensym))
   (.append ret `(setv ~var ~(macroexpand head)))
@@ -194,14 +195,13 @@
   (.append ret var)
   ret)
 
-;; Conditional-thread first macro:
-;; Variation of the thread first macro which operates as cond-> in Clojure.
-;; Example:
-;;
-;; (cond-> x True incr (even? 2) incr (odd? 2) decr) :
-;; (if True (if (even? 2) (if (odd? 2) (decr (incr (incr x))) (incr (incr x))) (incr x)) x)
-
 (defmacro cond-> [head &rest args]
+  """Conditional-thread first macro:
+  Variation of the thread first macro which operates as cond-> in Clojure.
+  Example: (cond-> x True incr (even? 2) incr (odd? 2) decr)
+
+  Returns: (if True (if (even? 2) (if (odd? 2) (decr (incr (incr x))) (incr (incr x))) (incr x)) x)
+  """
   (assert (even? (len args)) "cond->: Wrong number of arguments.")
   (setv pairs (partition args :n 2)
         thread (macroexpand head))
@@ -222,10 +222,10 @@
       (setv ret `(if ~clause ~ret ~(get forms (- -2 i))))))
   ret)
 
-;; Conditional-thread last macro:
-;; Variation of the thread last macro which operates as cond-> in Clojure.
-;;
 (defmacro cond->> [head &rest args]
+  """Conditional-thread last macro:
+  Variation of the thread last macro which operates as cond-> in Clojure.
+  """
   (assert (even? (len args)) "cond->: Wrong number of arguments.")
   (setv pairs (partition args :n 2)
         thread (macroexpand head))
