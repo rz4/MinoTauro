@@ -1,5 +1,8 @@
 ![LOGO](images/name.png)
 # (spec/def :MinoTauro (spec/and Hy? PyTorch?))
+
+*If all the ways I have been along were marked on a map and joined up with a line, it might represent a minotaur. - Pablo Picasso*
+
 PyTorch Meta-Programming Using the Lisp Dialect Hy
 
 ![Current Version](https://img.shields.io/badge/version-0.0.5-red.svg)
@@ -132,8 +135,9 @@ then training a generated model on dummy data.
 PyTorch auto-differential system
 works through definitions of models as `Modules` which are used to organize
 operations and dependent learnable parameters.
-MinoTauro extends PyTorch's abstractions by allowing more
-functional-style for defining computational graphs through `mu` expressions.  
+MinoTauro extends PyTorch's abstractions by adding a more
+functional-style to the definition of computational graphs through
+Minotauro's `mu` expression syntax.  
 In short, Minotauro makes writing new modules as simple as writing a new lambda expression.
 
 MinoTauro also includes a library of specialized threading macros to define more complex graphs.
