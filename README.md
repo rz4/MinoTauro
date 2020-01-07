@@ -1,7 +1,9 @@
 ![LOGO](images/name.png)
 # (spec/def :MinoTauro (spec/and Hy? PyTorch?))
 
-*If all the ways I have been along were marked on a map and joined up with a line, it might represent a minotaur. - Pablo Picasso*
+*If all the ways I have been along were marked on a map and joined up with a line, it might represent a minotaur.*
+
+*- Pablo Picasso*
 
 PyTorch Meta-Programming Using the Lisp Dialect Hy
 
