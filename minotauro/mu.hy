@@ -164,7 +164,8 @@
   ; Macro expand forward-procedure
   (setv forward-procedure (macroexpand-all forward-procedure))
 
-  `(do (import [torch.nn [Module]])
+  `(do (import [torch.nn [Module]]
+               [hy.contrib.hy-repr [hy-repr]])
        ((type "" (, Module)
          { "__init__"
            (fn [self &optional ~@args]
