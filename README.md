@@ -24,27 +24,27 @@ field of differential learning (DL).
 While the final goal of this project is to build a framework which will allow
 DL systems to have access to their code during runtime, this coding paradigm
 also shows promise at accelerating the development of new differential models
-while promoting formalized abstraction with predicate type checking. A common trend
-in current DL packages is an abundance of opaque object-oriented abstraction with packages
-such as Keras. This only reduces transparency to the already black-box nature of
-neural network (NN) systems, and makes interpretability and reproducibility of models
-more difficult.
+while promoting formalized abstraction with predicate type checking. A common
+trend in current DL packages is an abundance of opaque object-oriented abstraction
+with packages such as Keras. This only reduces transparency to the already
+black-box nature of neural network (NN) systems, and makes interpretability and
+reproducibility of models more difficult.
 
 In order to better understand DL models and allow for quick iterative design
 over novel or esoteric architectures, programmers require access to an
-environment which allows low-level definition of computational graphs and provides methods
-to quickly access network components for debugging and analysis, while still providing
-gpu-acceleration. I believe that the added expressibility
-of Lisp in combination with PyTorch's functional API allows for this type of programming
+environment which allows low-level definition of computational graphs and
+provides methods to quickly access network components for debugging and analysis,
+while still providing gpu-acceleration. The added expressibility of Lisp in
+combination with PyTorch's functional API allows for this type of programming
 paradigm, and provides DL researchers an extendable framework which cannot be
 matched by the restrictive set of abstractions allowed in contemporary NN packages.
 
 ## Features
 
-### Pytorch Models as S-Expressions
+### Computational Graphs as S-Expressions
 Defining models using S-Expressions allows for functional design, quick iterative
 refactoring, and manipulation of model code using macros. Here is a short example
-of defining a single layer feed forward neural network using MinoTauro's tools and
+of defining a single layer feed forward neural network using MinoTauro and
 then training a generated model on dummy data.
 
 ```hy
@@ -57,50 +57,34 @@ then training a generated model on dummy data.
 ; Requires
 (require [minotauro.mu [*]]
          [minotauro.thread [*]]
-         [minotauro.spec [*]]
          [hy.contrib.walk [let]])
 
-;; Define PyTorch Object Specifications
-(spec/def :tensor (fn [x] (instance? torch.Tensor x))
-          :learnable (fn [x] x.requires_grad)
-          :rank1 (fn [x] (-> x .size len (= 1)))
-          :rank2 (fn [x] (-> x .size len (= 2)))
-          :nonlinear (fn [x] (in x [torch.sigmoid torch.relu torch.tan])))
-
-;; Linear Operation
+;; Define a Linear Transformation operation:
 (defmu LinearTransformation [x weights bias]
   (-> x (@ weights) (+ bias)))
 
-;; Define Linear Specification
-(spec/def :LearnableLinear (spec/parameters weights (spec/and :tensor :learnable :rank2)
-                                            bias    (spec/and :tensor :learnable :rank1)))
+;; Define a constructor for a Linear Transformation with Learnable Parameters
+(defn LearnableLinear [f-in f-out]
+  (LinearTransformation
+    :weights (-> (torch.empty (, f-in f-out))
+                 (.normal_ :mean 0 :std 1.0)
+                 (nn.Parameter :requires_grad True))
+    :bias    (-> (torch.empty (, f-out))
+                 (.normal_ :mean 0 :std 1.0)
+                 (nn.Parameter :requires_grad True))))
 
-;; Define Linear Spec Generator
-(spec/defgen :LearnableLinear [f-in f-out]
-  (LinearTransformation :weights (-> (torch.empty (, f-in f-out))
-                                     (.normal_ :mean 0 :std 1.0)
-                                     (nn.Parameter :requires_grad True))
-                        :bias    (-> (torch.empty (, f-out))
-                                     (.normal_ :mean 0 :std 1.0)
-                                     (nn.Parameter :requires_grad True))))
-
-;; Single-layer Feed Forward Neural Network
-(defmu FeedForwardNeuralNetwork [x linear-to-hidden linear-to-output activation]
+;; Define a Single-layer Feed Forward Neural Network
+(defmu FeedForwardNeuralNetwork [x linear-to-hidden linear-to-output
   (-> x
       linear-to-hidden
-      activation
+      torch.sigmoid
       linear-to-output))
 
-;; Define FeedForwardNeuralNetwork Specification
-(spec/def :FeedForwardNeuralNetwork (spec/and (spec/modules linear-to-hidden :LearnableLinear
-                                                            linear-to-output :LearnableLinear)
-                                              (spec/keys activation :nonlinear)))
-
 ;; Define FeedForwardNeuralNetwork Spec Generator
-(spec/defgen :FeedForwardNeuralNetwork [nb-inputs nb-hidden nb-outputs]
-  (FeedForwardNeuralNetwork :linear-to-hidden (spec/gen :LearnableLinear nb-inputs nb-hidden)
-                            :linear-to-output (spec/gen :LearnableLinear nb-hidden nb-outputs)
-                            :activation torch.sigmoid))
+(defn FFNN [nb-inputs nb-hidden nb-outputs]
+  (FeedForwardNeuralNetwork
+    :linear-to-hidden (LearnableLinear nb-inputs nb-hidden)
+    :linear-to-output (LearnableLinear nb-hidden nb-outputs)
 
 ;; main -
 (defmain [&rest _]
@@ -109,15 +93,14 @@ then training a generated model on dummy data.
   (let [nb-inputs 10 nb-hidden 32 nb-outputs 1]
 
     ; Define Model + Optimizer
-    (setv model (spec/gen :FeedForwardNeuralNetwork nb-inputs nb-hidden nb-outputs)
+    (setv model (FFNN nb-inputs nb-hidden nb-outputs)
           optimizer (Adam (.parameters model) :lr 0.001 :weight_decay 1e-5))
 
     ; Generate Dummy Data
     (let [batch-size 100]
       (setv x (-> (torch.empty (, batch-size nb-inputs))
                   (.normal_ :mean 0 :std 1.0))
-
-            y (torch.ones (, batch-size nb-outputs)))))
+            y (torch.ones (, batch-size nb-outputs))))
 
   ; Train
   (let [epochs 100]
@@ -137,24 +120,20 @@ then training a generated model on dummy data.
 PyTorch auto-differential system
 works through definitions of models as `Modules` which are used to organize
 operations and dependent learnable parameters.
-MinoTauro extends PyTorch's abstractions by adding a more
-functional-style to the definition of computational graphs through
-Minotauro's `mu` expression syntax.  
+MinoTauro extends PyTorch's abstractions by letting you define computational graphs
+in functional-syntax through Minotauro's `mu` expressions.  
 In short, Minotauro makes writing new modules as simple as writing a new lambda expression.
-
-MinoTauro also includes a library of specialized threading macros to define more complex graphs.
-In addition, a specification system is included inspired from Clojure's `spec`. `spec` is a
-powerful utility which allows predicate definitions of types for testing during development.
-`spec` is included in MinoTauro makes the constraints of a DL system more understandable, allows
-for descriptive debugging and makes generating valid data and models a breeze.
 
 In the above example, we show the use of the macro `defmu` which takes its arguments and
 defines a PyTorch `Module` class. The `components` used by the module during forward
 propagation are defined in the argument list. The expressions following the argument list
-defines the `forward-procedure`. Thus, defining a PyTorch module takes the following form:
+defines the `forward-procedure`. `components` are typically `torch.nn.Parameter`s or
+`torch.nn.Module`s.
+
+Thus, defining a PyTorch module takes the following form:
 
 ```hy
-(defmu module-name [&rest components] forward-procedure)
+(defmu module-name [component-0 ... component-N] forward-procedure)
 ```
 
 While PyTorch's module system uses an object oriented approach, MinoTauro's abstractions allows
@@ -162,12 +141,15 @@ for functional manipulation of tensor objects. MinoTauro abstracts the PyTorch `
 the form `mu`. A `mu` can be thought of as a lambda expression with all the added
 benefits of PyTorch's `Module` system. This means all native PyTorch operations
 still work including moving PyTorch objects to and from devices and accessing sub-modules
-and parameters. Default `components` (or sub-modules in
-traditional PyTorch) can be binded to `mu`s when creating a new object. If
-bound during initialization, the default `components` will be used during the forward pass.
+and parameters.
 
-As an example, the `:LearnableLinear` specification in the code example generates a new `LinearTransformation` module with custom
-default-and-persistent tensors, `weights` and `bias`. If arguments `weights` or `bias` are not provided
+Default `components` (or sub-modules in traditional PyTorch) can be binded to `mu`s when
+creating a new object. If bound during initialization, the default `components`
+will be used during the forward pass if not provided in the function call.
+
+As an example, the `LearnableLinear` function in the code example generates a new
+`LinearTransformation` module with custom default-and-persistent tensors, `weights`
+and `bias`. If arguments `weights` or `bias` are not provided
 during the forward pass of `LinearTransformation`, then these default values are used instead.
 
 We can view a representation of the computational graph by printing the model.
@@ -177,10 +159,12 @@ We can view a representation of the computational graph by printing the model.
 ; Returns
 
 FeedForwardNeuralNetwork(
-  C: [x linear-to-hidden linear-to-output activation]
-  λ: (linear-to-output (activation (linear-to-hidden x)))
+  ID: -G\uffff7
+  C: [x linear-to-hidden linear-to-output]
+  λ: (linear-to-output (torch.sigmoid (linear-to-hidden x)))
 
   (linear_to_hidden): LinearTransformation(
+    ID: -G\uffff5
     C: [x weights bias]
     λ: (+ (@ x weights) bias)
 
@@ -189,6 +173,7 @@ FeedForwardNeuralNetwork(
 
   )
   (linear_to_output): LinearTransformation(
+    ID: -G\uffff6
     C: [x weights bias]
     λ: (+ (@ x weights) bias)
 
@@ -196,6 +181,24 @@ FeedForwardNeuralNetwork(
     bias: Parameter(size: [1] dtype: torch.float32)
 
   )
+)
+```
+
+Accessing and viewing any component of the model is simple and done through python's dot notation.
+This make exploring a model easy and intuitive.
+```
+(print model.linear-to-hidden)
+
+; Returns
+
+LinearTransformation(
+  ID: -G\uffff1
+  C: [x weights bias]
+  λ: (+ (@ x weights) bias)
+
+  weights: Parameter(size: [10, 32] dtype: torch.float32)
+  bias: Parameter(size: [32] dtype: torch.float32)
+
 )
 ```
 
@@ -320,26 +323,98 @@ This package in conjunction with the formalized `mu` allows for runtime predicat
 and other features common in Clojure's `spec` such as `conform`, `explain`, and `gen`.
 These tools were added to MintoTauro to help debug computational graphs, constrain model architecture
 to facilitate design collaboration, and to easily generate valid data/models.
-Here is an example of defining a data specification and checking its validity:
+Here is an example of defining a data specification for the previous neural network example:
 
 ```hy
-; Macros
-(require (minotauro.spec [*]))
+; Imports
+(import torch
+        [torch.nn.functional :as F]
+        [torch.nn :as nn]
+        [torch.optim [Adam]])
 
-; Define Specification
-(spec/def :nb-even even?)
+; Requires
+(require [minotauro.mu [*]]
+         [minotauro.thread [*]]
+         [minotauro.spec [*]]
+         [hy.contrib.walk [let]])
 
-; More Complex Specifications
-(spec/def :int-even (spec/and (fn [x] (instance? int x)) :nb-even))
+;; Define PyTorch Object Specifications
+(spec/def :tensor (fn [x] (instance? torch.Tensor x))
+          :learnable (fn [x] x.requires_grad)
+          :rank1 (fn [x] (-> x .size len (= 1)))
+          :rank2 (fn [x] (-> x .size len (= 2))))
 
-; Runtime Specification Check
-(spec/valid? :int-even 2)
+;; Linear Operation
+(defmu LinearTransformation [x weights bias]
+  (-> x (@ weights) (+ bias)))
 
-;; Returns -> True
+;; Define a Learnable LinearTransformation data specification:
+;; Weights and bias are contrained to ensure model is correctly configured.
+;; In this instance, weights must conform to Tensors with learnable gradients of ranks 2 and 1 respectively.
+(spec/def :LearnableLinear (spec/parameters weights (spec/and :tensor :learnable :rank2)
+                                            bias    (spec/and :tensor :learnable :rank1)))
+
+;; Define a generator for the LearnableLinear Specification:
+;; Generators are lambda expressions which will return data that conforms to the specification.
+(spec/defgen :LearnableLinear [f-in f-out]
+  (LinearTransformation :weights (-> (torch.empty (, f-in f-out))
+                                     (.normal_ :mean 0 :std 1.0)
+                                     (nn.Parameter :requires_grad True))
+                        :bias    (-> (torch.empty (, f-out))
+                                     (.normal_ :mean 0 :std 1.0)
+                                     (nn.Parameter :requires_grad True))))
+
+;; Single-layer Feed Forward Neural Network
+(defmu FeedForwardNeuralNetwork [x linear-to-hidden linear-to-output]
+  (-> x
+      linear-to-hidden
+      torch.sigmoid
+      linear-to-output))
+
+;; Define FeedForwardNeuralNetwork Specification
+(spec/def :FeedForwardNeuralNetwork (spec/modules linear-to-hidden :LearnableLinear
+                                                  linear-to-output :LearnableLinear))
+
+;; Define FeedForwardNeuralNetwork Spec Generator
+(spec/defgen :FeedForwardNeuralNetwork [nb-inputs nb-hidden nb-outputs]
+  (FeedForwardNeuralNetwork :linear-to-hidden (spec/gen :LearnableLinear nb-inputs nb-hidden)
+                            :linear-to-output (spec/gen :LearnableLinear nb-hidden nb-outputs)))
+
+;; main -
+(defmain [&rest _]
+
+  (print "Loading Model + Data...")
+  (let [nb-inputs 10 nb-hidden 32 nb-outputs 1]
+
+    ; Define Model + Optimizer
+    (setv model (spec/gen :FeedForwardNeuralNetwork nb-inputs nb-hidden nb-outputs)
+          optimizer (Adam (.parameters model) :lr 0.001 :weight_decay 1e-5))
+
+    ; Generate Dummy Data
+    (let [batch-size 100]
+      (setv x (-> (torch.empty (, batch-size nb-inputs))
+                  (.normal_ :mean 0 :std 1.0))
+
+            y (torch.ones (, batch-size nb-outputs)))))
+
+  ; Train
+  (let [epochs 100]
+    (print "Training...")
+    (for [epoch (range epochs)]
+
+      ; Forward
+      (setv y-pred (model x))
+      (setv loss (F.binary_cross_entropy_with_logits y-pred y))
+      (print (.format "Epoch: {epoch} Loss: {loss}" :epoch epoch :loss loss))
+
+      ; Backward
+      (.zero_grad optimizer)
+      (.backward loss)
+      (.step optimizer))))
 ```
 
-The neural network example at the beginning of this document, uses `spec` to
-define valid configurations of the `LearnableLinear` and `FeedForwardNeuralNetwork` mus.
+The neural network example uses `spec` to
+define valid configurations of the `LearnableLinear` and `FeedForwardNeuralNetwork` modules.
 These `spec` definitions makes it simple and concise to test that modules
 have valid components. If a generator is defined for a `spec`, then
 the generated data will be tested against its specification and fail when
