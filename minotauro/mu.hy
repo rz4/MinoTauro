@@ -147,7 +147,7 @@
   (setv asserters '[])
   (for [c required-components]
     (+= asserters `((assert (not (none? ~c))
-                      (.format "Missing Component: {m}" :m (quote ~c))))))
+                      (.format "Arg {m} is not defined." :m (quote ~c))))))
 
   ; Macro expand forward-procedure & check for doc string
   (setv forward-procedure (macroexpand-all forward-procedure)
@@ -224,7 +224,7 @@
   (setv asserters '[])
   (for [c required-components]
     (+= asserters `((assert (not (none? ~c))
-                      (.format "Missing Component: {m}" :m (quote ~c))))))
+                      (.format "Arg {m} is not defined." :m (quote ~c))))))
 
   ; Macro expand forward-procedure
   (setv forward-procedure (macroexpand-all forward-procedure))

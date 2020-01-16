@@ -9,6 +9,7 @@
 ;; - Make sure to use gensym to prevent namespace collisions.
 ;; - Provide useful debugging messages to accelerate PyTorch model implementation.
 ;;
+;; Todo
 ;; To use macros, import using:
 ;; (require [minotauro.spec [*]])
 
@@ -95,36 +96,36 @@
   `(do (import [minotauro.spec [spec/data-registry]])
        ~@registers))
 
-(defmacro spec/defun [kw-namespace args returns]
-  """ Define New Function Specification Macro:
-  Creates a functional test predicate assigned to a HyKeyword.
-  The functional test predicate is composed of a predicate for the arguments of the function and
-  a predicate for the returned values of the function. These are the args and returns parameters
-  respectively.
-  """
-  ; Fetch Specifications
-  (setv setter '(setv)
-        var-args (gensym)
-        var-returns (gensym)
-        var-x (gensym)
-        var-params (gensym))
-  (if (instance? HyKeyword args)
-      (+= setter `(~var-args (get (spec/data-registry) ~args)))
-      (+= setter `(~var-args ~args)))
-  (if (instance? HyKeyword returns)
-      (+= setter `(~var-returns (get (spec/data-registry) ~returns)))
-      (+= setter `(~var-returns ~returns)))
-
-  ; Returned Expression
-  `(do (import [minotauro.spec [spec/fun-registry]])
-       ~setter
-       (assoc (spec/fun-registry) ~kw-namespace
-          (fn [~var-x ~var-params]
-            (setv form [~var-x])
-            (for [arg ~var-params] (+= form arg))
-            (setv valid-args? (~var-args ~var-params)
-                  valid-returns? (~var-returns (eval (HyExpression form))))
-            (and valid-args? valid-returns?)))))
+;; (defmacro spec/defun [kw-namespace args returns]
+;;   """ Define New Function Specification Macro:
+;;   Creates a functional test predicate assigned to a HyKeyword.
+;;   The functional test predicate is composed of a predicate for the arguments of the function and
+;;   a predicate for the returned values of the function. These are the args and returns parameters
+;;   respectively.
+;;   """
+;;   ; Fetch Specifications
+;;   (setv setter '(setv)
+;;         var-args (gensym)
+;;         var-returns (gensym)
+;;         var-x (gensym)
+;;         var-params (gensym))
+;;   (if (instance? HyKeyword args)
+;;       (+= setter `(~var-args (get (spec/data-registry) ~args)))
+;;       (+= setter `(~var-args ~args)))
+;;   (if (instance? HyKeyword returns)
+;;       (+= setter `(~var-returns (get (spec/data-registry) ~returns)))
+;;       (+= setter `(~var-returns ~returns)))
+;;
+;;   ; Returned Expression
+;;   `(do (import [minotauro.spec [spec/fun-registry]])
+;;        ~setter
+;;        (assoc (spec/fun-registry) ~kw-namespace
+;;           (fn [~var-x ~var-params]
+;;             (setv form [~var-x])
+;;             (for [arg ~var-params] (+= form arg))
+;;             (setv valid-args? (~var-args ~var-params)
+;;                   valid-returns? (~var-returns (eval (HyExpression form))))
+;;             (and valid-args? valid-returns?)))))
 
 (defmacro spec/defgen [kw-namespace args &rest body]
   """ Define New Generator For Data Specification Macro:
@@ -283,22 +284,22 @@
 ;;------REGEX Spec Construction------
 
 ;;
-(defmacro spec/cat [&rest specs]
-  (setv fetchers []
-        setter '(setv)
-        var-x (gensym))
-  (for [spec specs]
-    (setv spec (macroexpand spec))
-    (if (keyword? spec)
-      (.append fetchers `(_spec/eval (quote ~spec) ~var-x))
-      (if (instance? HyExpression spec)
-        (do (setv var (gensym))
-            (+= setter `(~var ~spec))
-            (.append fetchers `(~var ~var-x)))
-        (.append fetchers `(~spec ~var-x)))))
-  `(do (import [minotauro.spec [_spec/eval]])
-       ~setter
-       (fn [~var-x] (and ~@fetchers))))
+;; (defmacro spec/cat [&rest specs]
+;;   (setv fetchers []
+;;         setter '(setv)
+;;         var-x (gensym))
+;;   (for [spec specs]
+;;     (setv spec (macroexpand spec))
+;;     (if (keyword? spec)
+;;       (.append fetchers `(_spec/eval (quote ~spec) ~var-x))
+;;       (if (instance? HyExpression spec)
+;;         (do (setv var (gensym))
+;;             (+= setter `(~var ~spec))
+;;             (.append fetchers `(~var ~var-x)))
+;;         (.append fetchers `(~spec ~var-x)))))
+;;   `(do (import [minotauro.spec [_spec/eval]])
+;;        ~setter
+;;        (fn [~var-x] (and ~@fetchers))))
 ;;
 
 
@@ -387,14 +388,15 @@
                         (+= setter `(~var ~spec))
                         `(~var ~data))
                     `(~spec ~data))))
-  `(do (import [minotauro.spec [_spec/eval]])
+  `(do (import [minotauro.spec [_spec/eval _spec/conform-registry]])
        ~setter
+       (_spec/conform-registry :reset True)
        (if ~fetcher
          ~data
-         (assert False "spec/conform: Data does not conform to spec."))))
+         (assert False (.format "Data does not conform to spec:\n {d}" :d (_spec/conform-registry))))))
 
 ;; Return dictionary of valid? results on data according to spec
-(defmacro spec/explain [spec data]
+(defmacro spec/describe [spec data]
   (setv spec (macroexpand spec)
         setter '(setv))
   (setv expr (if (keyword? spec)
@@ -409,9 +411,6 @@
        ~setter
        ~expr
        (_spec/conform-registry)))
-
-;; Return dictionary of predicate evaluations given spec and data.
-;;(defmacro spec/describe [spec data])
 
 ;;------Spec Assertions------
 

@@ -42,7 +42,7 @@ matched by the restrictive set of abstractions allowed in contemporary NN packag
 ## Features
 
 ### Computational Graphs as S-Expressions
-Defining models using S-Expressions allows for functional design, quick iterative
+Defining models using S-expressions allows for functional design, quick iterative
 refactoring, and manipulation of model code using macros. Here is a short example
 of defining a single layer feed forward neural network using MinoTauro and
 then training a generated model on dummy data.
@@ -59,11 +59,11 @@ then training a generated model on dummy data.
          [minotauro.thread [*]]
          [hy.contrib.walk [let]])
 
-;; Define a Linear Transformation operation:
+;; Defines a Linear Transformation operation:
 (defmu LinearTransformation [x weights bias]
   (-> x (@ weights) (+ bias)))
 
-;; Define a constructor for a Linear Transformation with Learnable Parameters
+;; Defines a constructor for a Linear Transformation with Learnable Parameters
 (defn LearnableLinear [f-in f-out]
   (LinearTransformation
     :weights (-> (torch.empty (, f-in f-out))
@@ -73,16 +73,16 @@ then training a generated model on dummy data.
                  (.normal_ :mean 0 :std 1.0)
                  (nn.Parameter :requires_grad True))))
 
-;; Define a Single-layer Feed Forward Neural Network
-(defmu FeedForwardNeuralNetwork [x linear-to-hidden linear-to-output
+;; Defines a Feed Forward operation:
+(defmu FeedForward [x linear-to-hidden linear-to-output]
   (-> x
       linear-to-hidden
       torch.sigmoid
       linear-to-output))
 
-;; Define FeedForwardNeuralNetwork Spec Generator
-(defn FFNN [nb-inputs nb-hidden nb-outputs]
-  (FeedForwardNeuralNetwork
+;; Define a constructor for a Neural Network with learnable layers.
+(defn NeuralNetwork [nb-inputs nb-hidden nb-outputs]
+  (FeedForward
     :linear-to-hidden (LearnableLinear nb-inputs nb-hidden)
     :linear-to-output (LearnableLinear nb-hidden nb-outputs)
 
@@ -93,7 +93,7 @@ then training a generated model on dummy data.
   (let [nb-inputs 10 nb-hidden 32 nb-outputs 1]
 
     ; Define Model + Optimizer
-    (setv model (FFNN nb-inputs nb-hidden nb-outputs)
+    (setv model (NeuralNetwork nb-inputs nb-hidden nb-outputs)
           optimizer (Adam (.parameters model) :lr 0.001 :weight_decay 1e-5))
 
     ; Generate Dummy Data
@@ -320,7 +320,7 @@ symbol plus an added `>` (i.e `*->>`, `|->>`, etc.)
 ## Spec (Clojure-like Specifications For PyTorch)
 Inspired from Clojure's `spec`, MinoTauro includes a similar system for predicate type checking.
 This package in conjunction with the formalized `mu` allows for runtime predicate checking of components,
-and other features common in Clojure's `spec` such as `conform`, `explain`, and `gen`.
+and other features common in Clojure's `spec` such as `conform`, `describe`, and `gen`.
 These tools were added to MintoTauro to help debug computational graphs, constrain model architecture
 to facilitate design collaboration, and to easily generate valid data/models.
 Here is an example of defining a data specification for the previous neural network example:
@@ -338,7 +338,7 @@ Here is an example of defining a data specification for the previous neural netw
          [minotauro.spec [*]]
          [hy.contrib.walk [let]])
 
-;; Define PyTorch Object Specifications
+;; Defines PyTorch Object Specifications
 (spec/def :tensor (fn [x] (instance? torch.Tensor x))
           :learnable (fn [x] x.requires_grad)
           :rank1 (fn [x] (-> x .size len (= 1)))
@@ -364,8 +364,8 @@ Here is an example of defining a data specification for the previous neural netw
                                      (.normal_ :mean 0 :std 1.0)
                                      (nn.Parameter :requires_grad True))))
 
-;; Single-layer Feed Forward Neural Network
-(defmu FeedForwardNeuralNetwork [x linear-to-hidden linear-to-output]
+;; Feed Forward operation
+(defmu FeedForward [x linear-to-hidden linear-to-output]
   (-> x
       linear-to-hidden
       torch.sigmoid
@@ -377,8 +377,8 @@ Here is an example of defining a data specification for the previous neural netw
 
 ;; Define FeedForwardNeuralNetwork Spec Generator
 (spec/defgen :FeedForwardNeuralNetwork [nb-inputs nb-hidden nb-outputs]
-  (FeedForwardNeuralNetwork :linear-to-hidden (spec/gen :LearnableLinear nb-inputs nb-hidden)
-                            :linear-to-output (spec/gen :LearnableLinear nb-hidden nb-outputs)))
+  (FeedForward :linear-to-hidden (spec/gen :LearnableLinear nb-inputs nb-hidden)
+                :linear-to-output (spec/gen :LearnableLinear nb-hidden nb-outputs)))
 
 ;; main -
 (defmain [&rest _]
@@ -394,7 +394,6 @@ Here is an example of defining a data specification for the previous neural netw
     (let [batch-size 100]
       (setv x (-> (torch.empty (, batch-size nb-inputs))
                   (.normal_ :mean 0 :std 1.0))
-
             y (torch.ones (, batch-size nb-outputs)))))
 
   ; Train
