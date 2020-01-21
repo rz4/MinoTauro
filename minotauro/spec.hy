@@ -83,7 +83,8 @@
   ; Construct all register setters
   (setv registers [])
   (for [(, kw-namespace predicate) args]
-    (assert (and (instance? HyKeyword kw-namespace) (instance? HyExpression predicate))
+    (assert (and (instance? HyKeyword kw-namespace)
+                 (or (instance? HySymbol predicate) (instance? HyExpression predicate)))
        (.format "Arg pair must be of HyKeywords and HyExpressions. Found {kw} and {expr}."
          :kw (name (type kw-namespace))
          :expr (name (type predicate))))
@@ -242,6 +243,10 @@
 
 ;; Collection-of Operator
 (defmacro spec/coll-of [spec]
+  """Collection-Of Predicate Composition Macro:
+  Constructs a predicate to check if data is a collection of specifications
+  defined for argument spec.
+  """
   (setv spec (macroexpand spec)
         setter '(setv)
         var-x (gensym)
@@ -259,6 +264,13 @@
 
 ;; Contains Keys Operator
 (defmacro spec/keys [&rest args]
+  """Has-Keys Predicate Composition Macro:
+  Constructs a predicate to check if data has contains key with value of specifications
+  as defined by the args.
+
+  Args are partitioned in groups of two so defining key specification takes the form:
+  key1 spec1 key2 spec2 ... keyN specN
+  """
   (setv args (partition args :n 2)
         fetchers []
         setter '(setv)
@@ -282,26 +294,23 @@
          (and ~@fetchers))))
 
 ;;------REGEX Spec Construction------
-
-;;
-;; (defmacro spec/cat [&rest specs]
-;;   (setv fetchers []
-;;         setter '(setv)
-;;         var-x (gensym))
-;;   (for [spec specs]
-;;     (setv spec (macroexpand spec))
-;;     (if (keyword? spec)
-;;       (.append fetchers `(_spec/eval (quote ~spec) ~var-x))
-;;       (if (instance? HyExpression spec)
-;;         (do (setv var (gensym))
-;;             (+= setter `(~var ~spec))
-;;             (.append fetchers `(~var ~var-x)))
-;;         (.append fetchers `(~spec ~var-x)))))
-;;   `(do (import [minotauro.spec [_spec/eval]])
-;;        ~setter
-;;        (fn [~var-x] (and ~@fetchers))))
-;;
-
+(defmacro spec/cat [&rest specs]
+  (setv fetchers []
+        setter '(setv)
+        var-x (gensym))
+  (for [(, i spec) (enumerate specs)]
+    (setv spec (macroexpand spec))
+    (if (keyword? spec)
+      (.append fetchers `(_spec/eval (quote ~spec) (get ~var-x ~i)))
+      (if (instance? HyExpression spec)
+        (do (setv var (gensym))
+            (+= setter `(~var ~spec))
+            (.append fetchers `(~var (get ~var-x ~i))))
+        (.append fetchers `(~spec (get ~var-x ~i))))))
+  (setv nb-specs (len fetchers))
+  `(do (import [minotauro.spec [_spec/eval]])
+       ~setter
+       (fn [~var-x] (and (= (len ~var-x) ~nb-specs) ~@fetchers))))
 
 ;;------PyTorch Dependent Spec------
 
@@ -391,9 +400,11 @@
   `(do (import [minotauro.spec [_spec/eval _spec/conform-registry]])
        ~setter
        (_spec/conform-registry :reset True)
-       (if ~fetcher
-         ~data
-         (assert False (.format "Data does not conform to spec:\n {d}" :d (_spec/conform-registry))))))
+       (assert ~fetcher
+         (.join "\n" (+ ["Data does not conform Spec along:"]
+                        (lfor (, k v) (_spec/conform-registry)
+                          (.format "{s}:{b}" :s (name k) :b v)))))
+       ~data))
 
 ;; Return dictionary of valid? results on data according to spec
 (defmacro spec/describe [spec data]
@@ -415,7 +426,23 @@
 ;;------Spec Assertions------
 
 ;; Specification Assert
-;(defmacro spec/assert [])
+(defmacro spec/assert [spec data]
+  (setv spec (macroexpand spec)
+        setter '(setv))
+  (setv fetcher (if (keyword? spec)
+                  `(_spec/eval (quote ~spec) ~data)
+                  (if (instance? HyExpression spec)
+                    (do (setv var (gensym))
+                        (+= setter `(~var ~spec))
+                        `(~var ~data))
+                    `(~spec ~data))))
+  `(do (import [minotauro.spec [_spec/eval _spec/conform-registry]])
+       ~setter
+       (_spec/conform-registry :reset True)
+       (assert ~fetcher
+         (.join "\n" (+ ["Data does not conform Spec along:"]
+                        (lfor (, k v) (_spec/conform-registry)
+                          (.format "{s}:{b}" :s (name k) :b v)))))))
 
 ;; Enable or Disable Spec Asserts
 ;(defmacro spec/check-asserts [flag])

@@ -9,9 +9,9 @@
 ;;
 ;; The rise of data-driven differential learning (DL) systems shows promise at learning arbitrary
 ;; data transformations. As information becomes increasingly available, future data scientists will need
-;; tools to quickly parse through various data streams and filter out erronious signals from those streams.
-;; Luckily, DL programming provides a route to define functional specfications (of inputs and outputs) and
-;; fit "learnable lambdas" according to those specifications.
+;; tools to quickly parse through various data streams and filter out erronious signals from that data.
+;; Luckily, DL programming provides a route towards a workflow where functional specfications (of inputs and outputs)
+;; are first defined then "learnable lambdas" are fit according to those specifications.
 ;;
 ;; Aside from methods for training learnable parameters, we will also need methods
 ;; for exploring different model architectures in a semi-supervised fashion. The trend
@@ -34,7 +34,7 @@
 ;; for a given structure that best fits the training data.
 ;;
 ;; Given Lisp's ability to manipulate arbitrary data structures as lists,
-;; Lisp has been widely adopted as the best langauge to implement searches over
+;; Lisp has been widely adopted as as a good langauge to implement searches over
 ;; graph structures as seen in many implementations of "genetic programs" and derivation engines
 ;; for formal mathematical systems. Lisp provides the framework needed to manipulate computational
 ;; graphs as data. Once the DL system code is formated as data, a formal langauge for DL computation
@@ -52,7 +52,7 @@
 ;;
 ;; The system is constructed using macros (programs which process code as data) to reduce the
 ;; overhead of the system, ensure similar performance typical of native PyTorch applications,
-;; and to allow PyTorch's Modules to be expressed as first-class objects.
+;; and allow PyTorch's Modules to be expressed as first-class objects.
 ;;
 ;; The goal of the project is to create tools which will allow the user to quickly iterate over as
 ;; many possible computational graphs structures defined from a set of primitive operators, and not
@@ -76,8 +76,7 @@
 ;; """
 
 ; Imports
-(import hy
-        [hy.contrib.walk [macroexpand-all]])
+(import hy [hy.contrib.walk [macroexpand-all]])
 
 ;-----MU-Expressions------
 
@@ -92,8 +91,8 @@
 (defmacro defmu [module-name required-components &rest forward-procedure]
   """ PyTorch Module Mu-Expression Definition Macro:
   Macro expands to a new namespaced PyTorch Module Class definition.
-  Macro mirrors the definition of namespaced lambda functions and allows PyTorch Modules to
-  be expressed as first-class functions with bind-able components.
+  Macro syntax mirrors the definition of namespaced lambda functions and
+  allows PyTorch Modules to be expressed as first-class functions with bind-able components.
 
   The arguments are as follows:
   - module-name: the name of the PyTorch Module Class
@@ -129,7 +128,8 @@
     "Forward procedure must be defined.")
 
   ; Generate default args expressions
-  (setv args (lfor c required-components [c None]))
+  (setv args (lfor c required-components [c None])
+        forward-procedure (lfor p forward-procedure p))
 
   ; Generate init-body
   (setv init-body '(setv))
@@ -152,9 +152,9 @@
   ; Macro expand forward-procedure & check for doc string
   (setv forward-procedure (macroexpand-all forward-procedure)
         doc-str "")
-  (when (and (> (len forward-procedure) 2) (instance? str (first forward-procedure)))
-    (setv forward-procedure (rest forward-procedure)
-          doc-str (first forward-procedure)))
+  (while (instance? HyString (first forward-procedure))
+    (+= doc-str (first forward-procedure))
+    (setv forward-procedure (cut forward-procedure 1)))
 
   ; Mu Expression Expansion
   `(do (import [torch.nn [Module]]
