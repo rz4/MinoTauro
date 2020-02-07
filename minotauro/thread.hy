@@ -50,16 +50,16 @@
     (setv ret (macroexpand
                 (if (instance? HyExpression form)
                   (if (instance? HyList ret)
-                    (do (setv accum []) (for [r ret] (.append accum (macroexpand r)))
+                    (do (setv accum []) (for [r ret] (+= accum (macroexpand `(~r))))
                         `(~(first form) ~@accum ~@(rest form)))
                     `(~(first form) ~ret ~@(rest form)))
                   (if (instance? HyList form)
                     (do (setv accum '[])
                         (for [n form]
-                          (.append accum (macroexpand `(*-> ~ret ~n))))
+                          (+= accum (macroexpand `((*-> ~ret ~n)))))
                         (HyList accum))
                     (if (instance? HyList ret)
-                      (do (setv accum []) (for [r ret] (.append accum (macroexpand r)))
+                      (do (setv accum []) (for [r ret] (+= accum (macroexpand `(~r))))
                         `(~form ~@accum))
                       `(~form ~ret)))))))
   ret)
@@ -74,16 +74,16 @@
     (setv ret (macroexpand
                 (if (instance? HyExpression form)
                   (if (instance? HyList ret)
-                    (do (setv accum []) (for [r ret] (.append accum (macroexpand r)))
+                    (do (setv accum []) (for [r ret] (+= accum (macroexpand `(~r))))
                         `(~(first form) ~@(rest form) ~@accum))
                     `(~(first form) ~@(rest form) ~ret))
                   (if (instance? HyList form)
                     (do (setv accum '[])
                         (for [n form]
-                          (.append accum (macroexpand `(*->> ~ret ~n))))
+                          (+= accum (macroexpand `((*->> ~ret ~n)))))
                         (HyList accum))
                     (if (instance? HyList form)
-                      (do (setv accum []) (for [r ret] (.append accum (macroexpand r)))
+                      (do (setv accum []) (for [r ret] (+= accum (macroexpand `(~r))))
                         `(~form ~@accum))
                       `(~form ~ret)))))))
   ret)
@@ -109,20 +109,20 @@
                                    (raise (ValueError "|->: Dimension Mismatch")))
                                (setv accum '[])
                                (for [i (range (len form))]
-                                    (.append accum (macroexpand `(|-> ~(get ret i) ~(get form i)))))
+                                    (+= accum (macroexpand `((|-> ~(get ret i) ~(get form i))))))
                                accum)
                            (do (setv accum '[])
-                               (for [n form] (.append accum (macroexpand `(|-> ~ret ~n))))
+                               (for [n form] (+= accum (macroexpand `((|-> ~ret ~n)))))
                                accum))]
                       [(instance? HyExpression form)
                        (if (instance? HyList ret)
                            (do (setv accum '[])
-                               (for [r ret] (.append accum `(~(first form) ~r ~@(rest form))))
+                               (for [r ret] (+= accum `((~(first form) ~r ~@(rest form)))))
                                accum)
                            `(~(first form) ~ret ~@(rest form)))]
                       [True (if (instance? HyList ret)
                                 (do (setv accum '[])
-                                    (for [r ret] (.append accum `(~form ~r)))
+                                    (for [r ret] (+= accum `((~form ~r))))
                                     accum)
                                 `(~form ~ret))]))))
   ret)
@@ -140,20 +140,20 @@
                                    (raise (ValueError "|->: Dimension Mismatch")))
                                (setv accum '[])
                                (for [i (range (len form))]
-                                    (.append accum (macroexpand `(|->> ~(get ret i) ~(get form i)))))
+                                    (+= accum (macroexpand `((|->> ~(get ret i) ~(get form i))))))
                                accum)
                            (do (setv accum '[])
-                               (for [n form] (.append accum (macroexpand `(|->> ~ret ~n))))
+                               (for [n form] (+= accum (macroexpand `((|->> ~ret ~n)))))
                                accum))]
                       [(instance? HyExpression form)
                        (if (instance? HyList ret)
                            (do (setv accum '[])
-                               (for [r ret] (.append accum `(~(first form) ~@(rest form) ~r)))
+                               (for [r ret] (+= accum `((~(first form) ~@(rest form) ~r))))
                                accum)
                            `(~(first form) ~@(rest form) ~ret))]
                       [True (if (instance? HyList ret)
                                 (do (setv accum '[])
-                                    (for [r ret] (.append accum `(~form ~r)))
+                                    (for [r ret] (+= accum `((~form ~r))))
                                     accum)
                                 `(~form ~ret))]))))
   ret)
@@ -169,14 +169,14 @@
   """
   (setv ret '(do))
   (setv var (gensym))
-  (.append ret `(setv ~var ~(macroexpand head)))
+  (+= ret `((setv ~var ~(macroexpand head))))
   (for [form forms]
     (setv expr `(setv ~var))
-    (.append expr (if (isinstance form HyExpression)
-                      (macroexpand `(~(first form) ~var ~@(rest form)))
-                      (macroexpand `(~form ~var))))
-    (.append ret expr))
-  (.append ret var)
+    (+= expr (if (isinstance form HyExpression
+                      (macroexpand `((~(first form) ~var ~@(rest form))))
+                      (macroexpand `((~form ~var))))))
+    (+= ret expr))
+  (+= ret var)
   ret)
 
 (defmacro =->> [&rest forms]
@@ -185,14 +185,14 @@
   """
   (setv ret '(do))
   (setv var (gensym))
-  (.append ret `(setv ~var ~(macroexpand head)))
+  (+= ret `((setv ~var ~(macroexpand head))))
   (for [form forms]
     (setv expr `(setv ~var))
-    (.append expr (if (isinstance form HyExpression)
-                      (macroexpand `(~(first form) ~@(rest form) ~var))
-                      (macroexpand `(~form ~var))))
-    (.append ret expr))
-  (.append ret var)
+    (+= expr (if (isinstance form HyExpression
+                      (macroexpand `((~(first form) ~@(rest form) ~var)))
+                      (macroexpand `((~form ~var))))))
+    (+= ret expr))
+  (+= ret var)
   ret)
 
 (defmacro cond-> [head &rest args]

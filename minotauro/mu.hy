@@ -7,62 +7,6 @@
 ;;
 ;; - Should function as a minimal wrapper for PyTorch's Module Objects.
 ;;
-;; The rise of data-driven differential learning (DL) systems shows promise at learning arbitrary
-;; data transformations. As information becomes increasingly available, future data scientists will need
-;; tools to quickly parse through various data streams and filter out erronious signals from that data.
-;; Luckily, DL programming provides a route towards a workflow where functional specfications (of inputs and outputs)
-;; are first defined then "learnable lambdas" are fit according to those specifications.
-;;
-;; Aside from methods for training learnable parameters, we will also need methods
-;; for exploring different model architectures in a semi-supervised fashion. The trend
-;; in contemporary models is towards model specificity in order to increase predicitive
-;; performance on a given problem domain. Those models, which exploit domain-specific
-;; information along the structure of the model's computational graph, outperform arbitrary methods.
-;;
-;; Intuition leads us to assume that certain classes of computational graphs outperform others on
-;; a given predicition task, for example the field of image recognition appears to be dominated by
-;; scomputational graphs employing local 2D convolution. Though packages like Keras and Tensorflow
-;; abstract the 2D convolutionoperation into a psuedo-primitive (Layer), 2D convolutions have varying
-;; implementations, all of which are permutations of computational graphs which may employ any combination
-;; of lower-level tensor operators such as matrix reshapes, matrix transposes, and matrix products.
-;;
-;; If we define our search space to be models contructed from a base set of primitive operators, we
-;; will see the relation between models and predicitive ability as one that correlates with the class
-;; of graph structure employed by the model. These insights will allow us to better infer which class
-;; of graph structure will best fit certain data specifications and make searching the possible space
-;; of differential learning models analagous to searching through a taxtonomy of learnable functions
-;; for a given structure that best fits the training data.
-;;
-;; Given Lisp's ability to manipulate arbitrary data structures as lists,
-;; Lisp has been widely adopted as as a good langauge to implement searches over
-;; graph structures as seen in many implementations of "genetic programs" and derivation engines
-;; for formal mathematical systems. Lisp provides the framework needed to manipulate computational
-;; graphs as data. Once the DL system code is formated as data, a formal langauge for DL computation
-;; will be accessable to any other program which is able to function off that model data representation.
-;;
-;; The link between DL systems and traditional symbolic program is a Lisp which encapsulates the
-;; interaction between those two components. Meta-learning and Reinforcement Learning will then be
-;; able to cast the problem of meta-learning from an esoteric "deep learning" space to the symbolic
-;; playground which has been well established to be the best environment to express recursion,
-;; formal systems, and probabilistic models.
-;;
-;; This project explores the use of Lisp to make meta-programming of computational graphs more
-;; transparent and manageable with tools adopted for data-oriented functional programming languages
-;; like Clojure and Haskell.
-;;
-;; The system is constructed using macros (programs which process code as data) to reduce the
-;; overhead of the system, ensure similar performance typical of native PyTorch applications,
-;; and allow PyTorch's Modules to be expressed as first-class objects.
-;;
-;; The goal of the project is to create tools which will allow the user to quickly iterate over as
-;; many possible computational graphs structures defined from a set of primitive operators, and not
-;; simply a shallow search over a set of custom defined hyper parameters.
-;;
-;; The result is a coding environment which gives more flexability than any other DL environment.
-;; From experience, this framework also makes developing and implementing new models a fast process,
-;; and will serve as a development environment for agile workflows and as a power multiplier for very
-;; small development teams.
-;;
 ;; Minotauro let's you implement lambda-esk "anonymous PyTorch Modules" referred to as "mu expressions".
 ;; Minotauro let's you bind parameters and modules to a mu expression.
 ;; Minotauro gives you Pythonic data accessing calls.
