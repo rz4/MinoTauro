@@ -55,8 +55,8 @@ then training a generated model on dummy data.
         [torch.optim [Adam]])
 
 ; Requires
-(require [minotauro.mu [*]]
-         [minotauro.thread [*]]
+(require [mino.mu [*]]
+         [mino.thread [*]]
          [hy.contrib.walk [let]])
 
 ;; Defines a Linear Transformation operation:
@@ -333,9 +333,9 @@ Here is an example of defining a data specification for the previous neural netw
         [torch.optim [Adam]])
 
 ; Requires
-(require [minotauro.mu [*]]
-         [minotauro.thread [*]]
-         [minotauro.spec [*]]
+(require [mino.mu [*]]
+         [mino.thread [*]]
+         [mino.spec [*]]
          [hy.contrib.walk [let]])
 
 ;; Defines PyTorch Object Specifications
