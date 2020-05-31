@@ -8,4 +8,4 @@ Development.ipynb
 build
 dist
 hytorch.egg*
-tests/
+tests

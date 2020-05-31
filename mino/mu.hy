@@ -25,11 +25,25 @@
 ;-----MU-Expressions------
 
 (defmacro register-mu []
-  `(do (import [hy.contrib.hy-repr [hy-repr-register hy-repr]])
-       (setv mu-repr (fn [x]
-                      (.format "(mu {args} {forms})"
-                         :args (cut (hy-repr x.arguments) 1)
-                         :forms (cut (hy-repr x.expression) 1))))
+  """
+  """
+  `(do (import [torch.nn [Module]]
+               [hy.contrib.hy-repr [hy-repr-register hy-repr]])
+       (defn mu-repr [mu]
+          (setv mu-str (.format "(mu {args} {forms})"
+                         :args (cut (hy-repr mu.arguments) 1)
+                         :forms (cut (hy-repr mu.expression) 2 -1))
+                sub-mus {})
+          (for [a mu.arguments]
+            (setv aa (eval `(. mu ~a)))
+            (when (instance? Module aa)
+              (assoc sub-mus a aa)))
+          (unless (empty? sub-mus)
+            (setv mu-str (.format "(bind {}" mu-str))
+            (for [sub sub-mus]
+              (+= mu-str (.format " :{} {}" sub (mu-repr (get sub-mus sub)))))
+            (setv mu-str (.format "{})" mu-str)))
+          mu-str)
        (hy-repr-register Module mu-repr)))
 
 (defmacro defmu [module-name required-components &rest forward-procedure]

@@ -21,7 +21,7 @@
 
 ;-----Spec Registry------
 
-(defn spec/data-registry []
+(defn _spec/data-registry []
   """ Accesses Data Specs Registry:
   Returns namespace mapping of kewords to predicate specifications.
   """
@@ -29,7 +29,7 @@
   (try data-spec-registry
     (except [] (setv data-spec-registry {}) data-spec-registry)))
 
-(defn spec/fun-registry []
+(defn _spec/fun-registry []
   """ Accesses Function Spec Registry:
   Returns namespace mapping of keywords to predicate specifications.
   """
@@ -37,7 +37,7 @@
   (try fun-spec-registry
     (except [] (setv fun-spec-registry {}) fun-spec-registry)))
 
-(defn spec/gen-registry []
+(defn _spec/gen-registry []
   """ Accesses Generator Spec Registry:
   Returns namespace mapping of keywords to generator functions.
   """
@@ -62,9 +62,11 @@
   If &rest arguments are provided, assume a functional specification check.
   """
   (setv out (if (> (len fun-args) 0)
-              ((get (spec/fun-registry) spec) data fun-args)
-              ((get (spec/data-registry) spec) data)))
-  (assoc (_spec/conform-registry) spec out)
+                ((get (_spec/fun-registry) spec) data fun-args)
+                ((get (_spec/data-registry) spec) data)))
+  (assoc (_spec/conform-registry) (gensym) {"spec" spec
+                                            "passed?" out
+                                            "value" data})
   out)
 
 ;;-----Spec Definintion------
@@ -90,43 +92,50 @@
          :expr (name (type predicate))))
     (setv predicate (macroexpand predicate))
     (if (instance? HyKeyword predicate)
-      (.append registers `(assoc (spec/data-registry) ~kw-namespace (get (spec/data-registry) ~predicate)))
-      (.append registers `(assoc (spec/data-registry) ~kw-namespace ~predicate))))
+      (.append registers `(assoc (_spec/data-registry) ~kw-namespace (get (_spec/data-registry) ~predicate)))
+      (.append registers `(assoc (_spec/data-registry) ~kw-namespace ~predicate))))
 
   ; Returned Expression
-  `(do (import [mino.spec [spec/data-registry]])
+  `(do (import [mino.spec [_spec/data-registry]])
        ~@registers))
 
-;; (defmacro spec/defun [kw-namespace args returns]
-;;   """ Define New Function Specification Macro:
-;;   Creates a functional test predicate assigned to a HyKeyword.
-;;   The functional test predicate is composed of a predicate for the arguments of the function and
-;;   a predicate for the returned values of the function. These are the args and returns parameters
-;;   respectively.
-;;   """
-;;   ; Fetch Specifications
-;;   (setv setter '(setv)
-;;         var-args (gensym)
-;;         var-returns (gensym)
-;;         var-x (gensym)
-;;         var-params (gensym))
-;;   (if (instance? HyKeyword args)
-;;       (+= setter `(~var-args (get (spec/data-registry) ~args)))
-;;       (+= setter `(~var-args ~args)))
-;;   (if (instance? HyKeyword returns)
-;;       (+= setter `(~var-returns (get (spec/data-registry) ~returns)))
-;;       (+= setter `(~var-returns ~returns)))
-;;
-;;   ; Returned Expression
-;;   `(do (import [mino.spec [spec/fun-registry]])
-;;        ~setter
-;;        (assoc (spec/fun-registry) ~kw-namespace
-;;           (fn [~var-x ~var-params]
-;;             (setv form [~var-x])
-;;             (for [arg ~var-params] (+= form arg))
-;;             (setv valid-args? (~var-args ~var-params)
-;;                   valid-returns? (~var-returns (eval (HyExpression form))))
-;;             (and valid-args? valid-returns?)))))
+(defmacro spec/defun [kw-namespace args returns]
+  """ Define New Function Specification Macro:
+  Creates a functional test predicate assigned to a HyKeyword.
+  The functional test predicate is composed of a predicate for the arguments of the function and
+  a predicate for the returned values of the function. These are the args and returns parameters
+  respectively.
+  """
+  ; Fetch Specifications
+  (setv setter '(setv)
+        var-args (gensym)
+        var-returns (gensym)
+        var-x (gensym)
+        var-params (gensym))
+  (if (instance? HyKeyword args)
+      (+= setter `(~var-args (fn [x] (_spec/eval (quote ~args) x))))
+      (+= setter `(~var-args ~args)))
+  (if (instance? HyKeyword returns)
+      (+= setter `(~var-returns (fn [x] (_spec/eval (quote ~returns) x))))
+      (+= setter `(~var-returns ~returns)))
+
+  ; Returned Expression
+  `(do (import [mino.spec [_spec/fun-registry _spec/eval _spec/conform-registry]])
+       ~setter
+       (assoc (_spec/fun-registry) ~kw-namespace
+          (fn [~var-x ~var-params]
+            (setv form '(~var-x))
+            (for [arg ~var-params] (+= form [arg]))
+            (setv valid-args? (~var-args ~var-params))
+            (assoc (_spec/conform-registry) (gensym) {"spec" "Arguments"
+                                                      "passed?" valid-args?
+                                                      "value" ""})
+            (setv out (try (eval form) (except [] (return False)))
+                  valid-returns? (~var-returns out))
+            (assoc (_spec/conform-registry) (gensym) {"spec" "Returned"
+                                                      "passed?" valid-returns?
+                                                      "value" ""})
+            (and valid-args? valid-returns?)))))
 
 (defmacro spec/defgen [kw-namespace args &rest body]
   """ Define New Generator For Data Specification Macro:
@@ -141,8 +150,8 @@
     "Body must be defined.")
 
   ; Returned Expression
-  `(do (import [mino.spec [spec/gen-registry]])
-       (assoc (spec/gen-registry) ~kw-namespace (fn ~args ~@body))))
+  `(do (import [mino.spec [_spec/gen-registry]])
+       (assoc (_spec/gen-registry) ~kw-namespace (fn ~args ~@body))))
 
 ;;-----Spec Construction-----
 
@@ -401,13 +410,35 @@
        ~setter
        (_spec/conform-registry :reset True)
        (assert ~fetcher
-         (.join "\n" (+ ["Data does not conform Spec along:"]
-                        (lfor (, k v) (_spec/conform-registry)
-                          (.format "{s}:{b}" :s (name k) :b v)))))
+          (.join "\n" (+ ["Data does not conform Spec.\n\nTraceback Along Registered Specs:\n"]
+                         (lfor (, k v) (.items (_spec/conform-registry))
+                           (.format "{p} :{s}, Found: {v}" :s (name (get v "spec"))
+                                                           :p (if (get v "passed?")
+                                                                  "Passed"
+                                                                  "Failed")
+                                                           :v (get v "value"))))))
        ~data))
 
+;; Pass data if valid according to spec
+(defmacro spec/exercise [spec func &rest data]
+  (assert (instance? HyKeyword spec)
+    "Arg 1 must be a HyKeyword corresponding to a registered function Spec.")
+  (setv fetcher `(_spec/eval (quote ~spec) ~func ~@data))
+
+  `(do (import [mino.spec [_spec/eval _spec/conform-registry]])
+       (_spec/conform-registry :reset True)
+       (assert ~fetcher
+          (.join "\n" (+ ["Function does not conform Spec.\n\nTraceback Along Registered Specs:\n"]
+                         (lfor (, k v) (.items (_spec/conform-registry))
+                           (.format "{p} :{s}, Found: {v}" :s (name (get v "spec"))
+                                                           :p (if (get v "passed?")
+                                                                  "Passed"
+                                                                  "Failed")
+                                                           :v (get v "value"))))))
+       (~func ~@data)))
+
 ;; Return dictionary of valid? results on data according to spec
-(defmacro spec/describe [spec data]
+(defmacro spec/explain [spec data]
   (setv spec (macroexpand spec)
         setter '(setv))
   (setv expr (if (keyword? spec)
@@ -425,6 +456,11 @@
 
 ;;------Spec Assertions------
 
+;; Check if Spec Asserts are enabled
+(defn _spec/check-asserts? []
+  (global check-asserts-flag)
+  (try check-asserts-flag (except [] True)))
+
 ;; Specification Assert
 (defmacro spec/assert [spec data]
   (setv spec (macroexpand spec)
@@ -436,19 +472,23 @@
                         (+= setter `(~var ~spec))
                         `(~var ~data))
                     `(~spec ~data))))
-  `(do (import [mino.spec [_spec/eval _spec/conform-registry]])
-       ~setter
-       (_spec/conform-registry :reset True)
-       (assert ~fetcher
-         (.join "\n" (+ ["Data does not conform Spec along:"]
-                        (lfor (, k v) (_spec/conform-registry)
-                          (.format "{s}:{b}" :s (name k) :b v)))))))
+  `(do (import [mino.spec [_spec/eval _spec/conform-registry _spec/check-asserts?]])
+       (when (_spec/check-asserts?)
+        (do ~setter
+            (_spec/conform-registry :reset True)
+            (assert ~fetcher
+              (.join "\n" (+ ["Data does not conform Spec.\n\nTraceback Along Registered Specs:\n"]
+                             (lfor (, k v) (.items (_spec/conform-registry))
+                               (.format "{p} :{s}, Found: {v}" :s (name (get v "spec"))
+                                                               :p (if (get v "passed?")
+                                                                      "Passed"
+                                                                      "Failed")
+                                                               :v (get v "value"))))))))))
 
 ;; Enable or Disable Spec Asserts
-;(defmacro spec/check-asserts [flag])
-
-;; Check if Spec Asserts are enabled
-;(defmacro spec/check-asserts? [])
+(defmacro spec/check-asserts [flag]
+  `(do (global check-asserts-flag)
+       (setv check-asserts-flag ~flag)))
 
 ;-----Specification Generation-----
 
@@ -458,10 +498,10 @@
         var-env-data (gensym)
         var (gensym))
   (setv conformed (macroexpand `(spec/conform ~spec ~var)))
-  `(do (import [mino.spec [spec/gen-registry spec/data-registry]])
-       (setv ~var-env-gen (spec/gen-registry)
-             ~var-env-data (spec/data-registry))
+  `(do (import [mino.spec [_spec/gen-registry _spec/data-registry]])
+       (setv ~var-env-gen (_spec/gen-registry)
+             ~var-env-data (_spec/data-registry))
        (assert (in ~spec ~var-env-gen) "Generator for Spec is not defined.")
        (if (in ~spec ~var-env-data)
-         (do (setv ~var ((get (spec/gen-registry) ~spec) ~@args)) ~conformed)
-         ((get (spec/gen-registry) ~spec) ~@args))))
+         (do (setv ~var ((get (_spec/gen-registry) ~spec) ~@args)) ~conformed)
+         ((get (_spec/gen-registry) ~spec) ~@args))))

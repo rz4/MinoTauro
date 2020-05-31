@@ -2,26 +2,18 @@
 A Hy Lang kernel for Jupyter based on MetaKernel.
 '''
 from __future__ import print_function
-
 import __future__  # NOQA
-
-import ast
-import sys
-import traceback
-import importlib
-import types
+from .version import __version__
+import ast, sys, traceback, importlib, types
 
 import hy
 from hy.cmdline import HyREPL
 from hy.version import __version__ as hy_version
 from hy.macros import load_macros
-#from hy.macros import _hy_macros, load_macros
 from hy.lex import tokenize
 from hy.compiler import hy_compile, HyASTCompiler
 from hy.core import language
 from metakernel import MetaKernel
-
-from .version import __version__
 
 try:
     from IPython.core.latex_symbols import latex_symbols
@@ -39,6 +31,7 @@ def create_jedhy_completer(env):
     return complete
 
 def get_filename(): return "kernel.py"
+
 def create_fallback_completer(env):
     '''
     Return simple completions from env listing,
@@ -53,7 +46,6 @@ def create_fallback_completer(env):
 
         matches = [word for word in env if word.startswith(txt)]
         for p in _compile_table + list(env.__macros__):
-        #for p in list(_hy_macros.values()) + _compile_table:
             p = filter(lambda x: isinstance(x, str), p.keys())
             p = [x.replace('_', '-') for x in p]
             matches.extend([
@@ -108,11 +100,11 @@ class CalystoHy(MetaKernel):
         self.env = {}
         super(CalystoHy, self).__init__(*args, **kwargs)
         [load_macros(m) for m in [hy.core, hy.macros]]
-        #if "str" in dir(__builtins__):
-        #    self.env.update({key: getattr(__builtins__, key)
-        #                     for key in dir(__builtins__)})
-        #if "keys" in dir(__builtins__):
-        #    self.env.update(__builtins__)
+        if "str" in dir(__builtins__):
+           self.env.update({key: getattr(__builtins__, key)
+                            for key in dir(__builtins__)})
+        if "keys" in dir(__builtins__):
+           self.env.update(__builtins__)
         self.env["raw_input"] = self.raw_input
         self.env["read"] = self.raw_input
         self.env["input"] = self.raw_input

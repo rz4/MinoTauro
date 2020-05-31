@@ -7,11 +7,11 @@
 
 PyTorch Meta-Programming Using the Lisp Dialect Hy
 
-![Current Version](https://img.shields.io/badge/version-0.0.5-red.svg)
+![Current Version](https://img.shields.io/badge/version-0.0.9-yellow.svg)
 
 Lead Maintainer: [Rafael Zamora-Resendiz](https://github.com/rz4)
 
-**MinoTauro** is a Hy (0.17.0) library running Python (3.7) and PyTorch (1.3)
+**MinoTauro** is a Hy (0.18.0) library running Python (3.8) and PyTorch (1.3)
 for use in rapid low-level development of differential programs as well as
 for experiments in deep learning meta-programming.
 
@@ -423,7 +423,7 @@ the data does not conform.
 
 #### Dependencies:
 
-The current project has been tested using Hy 0.17.0, PyTorch 1.3.1 and
+The current project has been tested using Hy 0.18.0, PyTorch 1.3.1 and
 Python 3.7.
 
 The following ***Pip*** command can be used to install **MinoTauro**:
@@ -440,7 +440,7 @@ a Jupyter notebook!
 ### Calysto - Hy IPython Kernel
 
 I've taken the current version of [calysto_hy](https://github.com/Calysto/calysto_hy)
-and made some changes to be able to run it with the latest version of Hy (0.16.0). Even though
+and made some changes to be able to run it with the latest version of Hy (0.18.0). Even though
 this version runs the kernel without major errors, the autocomplete feature is still not working
 and I will be looking into fixing this in the future.
 
