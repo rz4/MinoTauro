@@ -238,6 +238,23 @@
        (setv ~var ~mu)
        (.__init__ ~var ~@args) ~var))
 
+(defmacro mu/apply [iterator apply-procedure]
+  (macroexpand-all
+    `(do (import [torch.utils.data [Dataset]])
+         ((type "apply" (, Dataset)
+           {"__init__"
+            (fn [self]
+              (.__init__ (super (type self) self))
+              (setv self.data ~iterator
+                    self.LAMBDA ~apply-procedure
+                    self.NB (len self.data)))
+            "__len__"
+            (fn [self] self.NB)
+            "__getitem__"
+            (fn [self index]
+              (setv x (get self.data index))
+              (self.LAMBDA x))})))))
+
 ;-----COMMON-UTILITIES------
 
 (defmacro geta [x &rest args]
