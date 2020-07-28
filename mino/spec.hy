@@ -1,17 +1,21 @@
-;;; spec.hy
-;; Updated: 1/5/20
-;; File defines specfication system used in within the Minotauro developement environment.
-;; Inspired from clojure's spec. Includes many base operations from clojure.spec.alpha.
-;;
-;; Design Principles:
-;;
-;; - Spec should function soley as a macro-imported system.
-;; - Make sure to use gensym to prevent namespace collisions.
-;; - Provide useful debugging messages to accelerate PyTorch model implementation.
-;;
-;; Todo
-;; To use macros, import using:
-;; (require [mino.spec [*]])
+"""
+spec.hy
+Updated: 1/5/20
+File defines specfication system used in within the Minotauro developement environment.
+Inspired from clojure's spec. Includes many base operations from clojure.spec.alpha.
+
+;-- Design Principles
+
+- Should function soley as a macro-imported system.
+- Should provide useful debugging messages.
+
+;-- FUTURES
+
+;--
+
+To use macros, import using:
+(require [mino.spec [*]])
+"""
 
 ; Imports
 (import hy [hy.contrib.hy-repr [hy-repr]])

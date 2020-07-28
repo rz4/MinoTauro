@@ -1,50 +1,84 @@
-;; """
-;; mu.hy
-;; Updated: 1/8/2020
-;; File defines PyTorch Module macros for Minotauro development environment.
-;;
-;; Design Principles:
-;;
-;; - Should function as a minimal wrapper for PyTorch's Module Objects.
-;;
-;; Minotauro let's you implement lambda-esk "anonymous PyTorch Modules" referred to as "mu expressions".
-;; Minotauro let's you bind parameters and modules to a mu expression.
-;; Minotauro gives you Pythonic data accessing calls.
-;; Minotauro allows you to revert a module back to an S-Expression.
-;; You are allowed to do anything with it.
-;;
-;; And it all works with native PyTorch!
-;;
-;; To use macros, import using:
-;; (require [mino.mu [*]])
-;; """
+"""
+mu.hy
+Updated: 6/14/2020
+Module defines Mu Expression macros for Minotauro development environment.
 
-; Imports
+;-- Design Principles
+
+- Should function as a minimal wrapper for PyTorch's Module Objects.
+- Should function soley as a macro-imported system.
+
+;-- TLDR
+
+Minotauro let's you implement lambda-esk 'anonymous PyTorch Modules' referred to as 'mu expressions'.
+Minotauro let's you bind parameters and modules to a mu expression.
+Minotauro gives you Pythonic data accessing calls.
+Minotauro allows you to revert a models back to an S-Expressions.
+And it all works inline with native PyTorch!
+
+;-- FUTURES
+
+- Reverting models to Hy Representations should also simplify expression.
+
+;--
+
+To use macros, import using:
+(require [mino.mu [*]])
+"""
+
+;-- Imports
 (import hy [hy.contrib.walk [macroexpand-all]])
 
 ;-----MU-Expressions------
 
 (defmacro register-mu []
-  """
+  """ Mu's Hy Representation for Hy's Contributed hy-repr Package
+
+  Macro expands to an expression which defines a hy-repr function which takes in an evaulated Mu
+  object and outputs a string representing the object as an unevaluated Hy expression.
+
+  If the Mu object contains any nested Mu objects, those child objects are also
+  converted to unevaluated Hy expressions and wrap the parent expression with `bind`.
+
+  Any binded Torch parameters are lost during the conversion, and which leaves unoccupied entry
+  points to the computational graph.
+
+  The function is then registered to hy.contrib.hy-repr package if not already
+  found in registry.
+
+  Returns:
+    HyExpression: Expanded expression of hy-repr registry entry for
+
+  Todo:
+
+    * Add function to simplify all components and sub-components into
+      a single mu expression.
+
   """
   `(do (import [torch.nn [Module]]
-               [hy.contrib.hy-repr [hy-repr-register hy-repr]])
-       (defn mu-repr [mu]
-          (setv mu-str (.format "(mu {args} {forms})"
-                         :args (cut (hy-repr mu.arguments) 1)
-                         :forms (cut (hy-repr mu.expression) 2 -1))
-                sub-mus {})
-          (for [a mu.arguments]
-            (setv aa (eval `(. mu ~a)))
-            (when (instance? Module aa)
-              (assoc sub-mus a aa)))
-          (unless (empty? sub-mus)
-            (setv mu-str (.format "(bind {}" mu-str))
-            (for [sub sub-mus]
-              (+= mu-str (.format " :{} {}" sub (mu-repr (get sub-mus sub)))))
-            (setv mu-str (.format "{})" mu-str)))
-          mu-str)
-       (hy-repr-register Module mu-repr)))
+               [hy.contrib.hy-repr [hy-repr-register hy-repr -registry]])
+
+       ;-- Add to hy-repr registry if it doesn't exist
+       (unless (in Module -registry)
+
+         ;-- Define Object to Hy Expression String Conversion
+         (defn mu-repr [mu]
+            (setv mu-str (.format "(mu {args} {forms})"
+                           :args (cut (hy-repr mu.arguments) 1)
+                           :forms (cut (hy-repr mu.expression) 2 -1))
+                  sub-mus {})
+            (for [arg mu.arguments]
+              (setv component (eval `(. mu ~arg)))
+              (when (instance? Module component)
+                (assoc sub-mus arg component)))
+            (unless (empty? sub-mus)
+              (setv mu-str (.format "(bind {}" mu-str))
+              (for [sub sub-mus]
+                (+= mu-str (.format " :{} {}" sub (mu-repr (get sub-mus sub)))))
+              (setv mu-str (.format "{})" mu-str)))
+            mu-str)
+
+         (hy-repr-register Module mu-repr))))
 
 (defmacro defmu [module-name required-components &rest forward-procedure]
   """ PyTorch Module Mu-Expression Definition Macro:
@@ -74,6 +108,19 @@
 
   If there at least two body forms, and the first of them is a string literal, this string
   becomes the docstring of the module class.
+
+  Args:
+
+    param1 (int): The first parameter.
+    param2 (str): The second parameter.
+
+  Returns:
+
+
+  Todo:
+
+    * Add function to simplify all components and sub-components into
+      a single mu expression.
   """
   ; Argument Asserts
   (assert (instance? HySymbol module-name)
@@ -114,10 +161,13 @@
     (+= doc-str (first forward-procedure))
     (setv forward-procedure (cut forward-procedure 1)))
 
+  ; Expand Mu Representation Register
+  (setv register (macroexpand '(register-mu)))
+
   ; Mu Expression Expansion
   `(do (import [torch.nn [Module]]
                [hy.contrib.hy-repr [hy-repr]])
-       (register-mu)
+       ~register
        (defclass ~module-name [Module]
          ~doc-str
          (defn __init__ [self &optional ~@args]
@@ -139,7 +189,7 @@
                  params (if (empty? params) "" (+ "\n" (.join "\n" params) "\n")))
            (+ "ID: " (cut self.identifier 1 -1) "\n"
               "C: " (cut (hy-repr self.arguments) 1) "\n"
-              "λ: " (cut (hy-repr self.expression) 1) "\n"
+              "λ: " (cut (hy-repr self.expression) 2 -1) "\n"
               params)))))
 
 (defmacro mu [required-components &rest forward-procedure]
@@ -187,9 +237,12 @@
   ; Macro expand forward-procedure
   (setv forward-procedure (macroexpand-all forward-procedure))
 
+  ; Expand Mu Representation Register
+  (setv register (macroexpand '(register-mu)))
+
   `(do (import [torch.nn [Module]]
                [hy.contrib.hy-repr [hy-repr]])
-       (register-mu)
+       ~register
        ((type "μ" (, Module)
          { "__init__"
            (fn [self &optional ~@args]
@@ -211,9 +264,9 @@
                               :s (-> param .size name (.split "(") last (cut 0 -1))
                               :d param.dtype))
                    params (if (empty? params) "" (+ "\n" (.join "\n" params) "\n")))
-             (+ "ID: " (cut self.identifier 1 -1) "\n"
+             (+ "iD: " (cut self.identifier 1 -1) "\n"
                 "C: " (cut (hy-repr self.arguments) 1) "\n"
-                "λ: " (cut (hy-repr self.expression) 1) "\n"
+                "λ: " (cut (hy-repr self.expression) 2 -1) "\n"
                 params))}))))
 
 (defmacro bind [mu &rest args]
@@ -238,7 +291,9 @@
        (setv ~var ~mu)
        (.__init__ ~var ~@args) ~var))
 
-(defmacro mu/apply [iterator apply-procedure]
+(defmacro mino/apply [iterator apply-procedure]
+  """ Anonymous Pytorch Dataset Macro:
+  """
   (macroexpand-all
     `(do (import [torch.utils.data [Dataset]])
          ((type "apply" (, Dataset)
@@ -258,12 +313,12 @@
 ;-----COMMON-UTILITIES------
 
 (defmacro geta [x &rest args]
-  """
-  Macro for mulitdimensional indexing of Numpy, Pandas, and PyTorch arrays:
-  Similar to native python multi-array indexing.
+  """ Macro for mulitdimensional indexing of Numpy, Pandas, and PyTorch arrays:
+  Macro provides ease-of-life indexing by allowing
+  indexing similar to native python multi-array indexing.
 
   Example:
-  (get x [:] [:] [1])
+  (geta x [:] [:] [1])
 
   equivalent to
 

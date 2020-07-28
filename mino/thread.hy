@@ -1,10 +1,13 @@
-;;; thread.hy
-;; Updated: 1/4/2020
-;; File defines threading macros for Minotauro development environment.
-;;
-;;
-;; To use macros, import using:
-;; (require [mino.thread [*]])
+"""
+thread.hy
+Updated: 1/4/2020
+File defines threading macros for Minotauro development environment.
+
+;--
+
+To use macros, import using:
+(require [mino.thread [*]])
+"""
 
 ; Imports
 (import hy)
