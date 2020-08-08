@@ -47,17 +47,17 @@ refactoring, and manipulation of model code using macros. Here is a short exampl
 of defining a single layer feed forward neural network using MinoTauro and
 then training a generated model on dummy data.
 
-```hy
+```hy 
+; Requires
+(require [mino.mu [*]]
+         [mino.thread [*]]
+         [hy.contrib.walk [let]])
+         
 ; Imports
 (import torch
         [torch.nn.functional :as F]
         [torch.nn :as nn]
         [torch.optim [Adam]])
-
-; Requires
-(require [mino.mu [*]]
-         [mino.thread [*]]
-         [hy.contrib.walk [let]])
 
 ;; Defines a Linear Transformation operation:
 (defmu LinearTransformation [x weights bias]
@@ -84,7 +84,7 @@ then training a generated model on dummy data.
 (defn NeuralNetwork [nb-inputs nb-hidden nb-outputs]
   (FeedForward
     :linear-to-hidden (LearnableLinear nb-inputs nb-hidden)
-    :linear-to-output (LearnableLinear nb-hidden nb-outputs)
+    :linear-to-output (LearnableLinear nb-hidden nb-outputs)))
 
 ;; main -
 (defmain [&rest _]
@@ -202,7 +202,7 @@ LinearTransformation(
 )
 ```
 
-### Anonymous Sigmods (i.e. Anonymous PyTorch Modules)
+### Anonymous Mu Expressions (i.e. Anonymous PyTorch Modules)
 Side effects make systems harder to debug and understand. The `mu` was designed to
 limit the `Module` to a formalized abstraction similar to lambda expressions. MinoTauro allows
 for anonymous PyTorch `Modules` through `mu`. For example, an anonymous Linear function
