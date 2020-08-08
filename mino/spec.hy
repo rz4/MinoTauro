@@ -1,13 +1,13 @@
 """
 spec.hy
-Updated: 1/5/20
-File defines specfication system used in within the Minotauro developement environment.
-Inspired from clojure's spec. Includes many base operations from clojure.spec.alpha.
+Updated: 8/7/20
+Module defines a specfication system for the MinoTauro developement environment.
+Inspired from clojure's spec, MinoTauro's spec includes many base operations from clojure.spec.alpha.
 
-;-- Design Principles
+;-- Design Principles 
 
 - Should function soley as a macro-imported system.
-- Should provide useful debugging messages.
+- Should provide methods to specify PyTorch Objects.
 
 ;-- FUTURES
 
@@ -17,42 +17,59 @@ To use macros, import using:
 (require [mino.spec [*]])
 """
 
-; Imports
-(import hy [hy.contrib.hy-repr [hy-repr]])
-
-; Macros
+;- Macros
 (require [hy.contrib.walk [let]])
 
-;-----Spec Registry------
+;- Imports
+(import hy [hy.contrib.hy-repr [hy-repr]])
 
+
+;;-----Spec Registry------
+
+;--
 (defn _spec/data-registry []
-  """ Accesses Data Specs Registry:
-  Returns namespace mapping of kewords to predicate specifications.
+  """ Access Data Specs Registry:
+  
+  Returns:
+  
+    (dict): namespace mapping of keywords to data predicate specifications.
   """
   (global data-spec-registry)
   (try data-spec-registry
     (except [] (setv data-spec-registry {}) data-spec-registry)))
 
+;--
 (defn _spec/fun-registry []
-  """ Accesses Function Spec Registry:
-  Returns namespace mapping of keywords to predicate specifications.
+  """ Access Function Spec Registry:
+  
+  Returns:
+  
+    (dict): namespace mapping of keywords to function predicate specifications.
   """
   (global fun-spec-registry)
   (try fun-spec-registry
     (except [] (setv fun-spec-registry {}) fun-spec-registry)))
 
+;--
 (defn _spec/gen-registry []
-  """ Accesses Generator Spec Registry:
-  Returns namespace mapping of keywords to generator functions.
+  """ Access Generator Spec Registry:
+  
+  Returns:
+  
+   (dict): namespace mapping of keywords to generator functions.
   """
   (global gen-spec-registry)
   (try gen-spec-registry
     (except [] (setv gen-spec-registry {}) gen-spec-registry)))
 
+;--
 (defn _spec/conform-registry [&optional [reset False]]
-  """ Accesses Conform Spec Registry:
-  Returns namespace mapping of keywords to valid? results since last reset.
-  Hidden from outside modules.
+  """ Access Conform Spec Registry:
+  
+  Returns:
+  
+    (dict): namespace mapping of keywords to valid? results since last reset.
+  
   """
   (global conform-registry)
   (try (if reset
@@ -60,10 +77,25 @@ To use macros, import using:
            conform-registry)
     (except [] (setv conform-registry {}) conform-registry)))
 
+;--
 (defn _spec/eval [spec data &rest fun-args]
-  """ Evaulates Data Given Specification:
-  Used to return specification predicate output while adding results to the conform-registry.
-  If &rest arguments are provided, assume a functional specification check.
+  """ Evaulate Data Given Specification:
+  
+  Used to return specification predicate output while adding results to the 
+  conform-registry. If &rest arguments are provided, assume a functional 
+  specification check and pass values as function inputs.
+  
+  Args:
+  
+    spec (HyKeyword): 
+    data (Object):
+    fun-args (&rest Object): 
+    
+  Returns:
+  
+    out (bool):
+  
+  
   """
   (setv out (if (> (len fun-args) 0)
                 ((get (_spec/fun-registry) spec) data fun-args)
@@ -73,20 +105,30 @@ To use macros, import using:
                                             "value" data})
   out)
 
-;;-----Spec Definintion------
+;;-----Spec Definition------
 
+;--
 (defmacro spec/def [&rest args]
   """ Define New Data Specifications Macro:
+  
   Takes in pairs of HyKeywords and predicate functions.
   Predicate functions can be constructed using specification macros provided
-  in the project or through lambda expressions.
-  Macros will be expanded and the output predicate functions are assigned to the Keyword.
+  in the spec module or through lambda expressions. Macros will be expanded and 
+  the output predicate functions are assigned to the HyKeyword.
+  
+  Args:
+  
+    args (&rest)
+    
+  Returns:
+    
+    (HyExpression): 
   """
-  ; Get keyword/predicate pairs.
+  ;- Get keyword/predicate pairs.
   (assert (even? (len args)) "Args must be paired. Found odd number of arguments.")
   (setv args (partition args :n 2))
 
-  ; Construct all register setters
+  ;- Construct all register setters
   (setv registers [])
   (for [(, kw-namespace predicate) args]
     (assert (and (instance? HyKeyword kw-namespace)
@@ -99,18 +141,25 @@ To use macros, import using:
       (.append registers `(assoc (_spec/data-registry) ~kw-namespace (get (_spec/data-registry) ~predicate)))
       (.append registers `(assoc (_spec/data-registry) ~kw-namespace ~predicate))))
 
-  ; Returned Expression
+  ;- Returned Expression
   `(do (import [mino.spec [_spec/data-registry]])
        ~@registers))
 
+;--
 (defmacro spec/defun [kw-namespace args returns]
   """ Define New Function Specification Macro:
-  Creates a functional test predicate assigned to a HyKeyword.
-  The functional test predicate is composed of a predicate for the arguments of the function and
-  a predicate for the returned values of the function. These are the args and returns parameters
-  respectively.
+  
+  Creates a function test predicate assigned to a HyKeyword. The function test 
+  predicate is composed of a predicate evaluating the arguments of the function 
+  and a predicate evaluating the returned value of the function. These are the 
+  args and returns parameters respectively.
+  
+  Args:
+  
+  Returns:
+  
   """
-  ; Fetch Specifications
+  ;- Fetch Specifications
   (setv setter '(setv)
         var-args (gensym)
         var-returns (gensym)
@@ -123,7 +172,7 @@ To use macros, import using:
       (+= setter `(~var-returns (fn [x] (_spec/eval (quote ~returns) x))))
       (+= setter `(~var-returns ~returns)))
 
-  ; Returned Expression
+  ;- Returned Expression
   `(do (import [mino.spec [_spec/fun-registry _spec/eval _spec/conform-registry]])
        ~setter
        (assoc (_spec/fun-registry) ~kw-namespace
@@ -141,10 +190,15 @@ To use macros, import using:
                                                       "value" ""})
             (and valid-args? valid-returns?)))))
 
+;--
 (defmacro spec/defgen [kw-namespace args &rest body]
   """ Define New Generator For Data Specification Macro:
+  
+  Args:
+  
+  Returns:
   """
-  ; Assert Checks
+  ;- Assert Checks
   (assert (instance? HyKeyword kw-namespace) "Arg 1 must be a HyKeyword.")
   (assert (instance? HyList args)
     (.format "Arg 2 must be HyList. Found {t}" :t (name (type require-components))))
@@ -153,17 +207,21 @@ To use macros, import using:
   (assert (> (len body) 0)
     "Body must be defined.")
 
-  ; Returned Expression
+  ;- Returned Expression
   `(do (import [mino.spec [_spec/gen-registry]])
        (assoc (_spec/gen-registry) ~kw-namespace (fn ~args ~@body))))
 
 ;;-----Spec Construction-----
 
+;--
 (defmacro spec/nand [&rest specs]
-  """Nand Operator Predicate Composition Macro:
-  Constructs a Nand operation predicate out of specification predicates in arguments.
-
-  Can take in any number of predicates or specification HyKeywords.
+  """NAND Predicate Composition Macro:
+  Constructs a NAND logic operator predicate out of argument specifications.
+  Can take in any number of legal specifications.
+  
+  Args:
+  
+  Returns:
   """
   (setv fetchers []
         setter '(setv)
@@ -181,11 +239,15 @@ To use macros, import using:
        ~setter
        (fn [~var-x] (not (and ~@fetchers)))))
 
+;--
 (defmacro spec/and [&rest specs]
-  """And Operator Predicate Composition Macro:
-  Constructs a And operation predicate out of specification predicates in arguments.
-
-  Can take in any number of predicates or specification HyKeywords.
+  """AND Predicate Composition Macro:
+  Constructs an AND logic operator predicate out of argument specifications.
+  Can take in any number of specifications.
+  
+  Args:
+  
+  Returns:
   """
   (setv fetchers []
         setter '(setv)
@@ -203,6 +265,7 @@ To use macros, import using:
        ~setter
        (fn [~var-x] (and ~@fetchers))))
 
+;--
 (defmacro spec/or [&rest specs]
   """Or Operator Predicate Composition Macro:
   Constructs a Or operation predicate out of specification predicates in arguments.
@@ -496,7 +559,7 @@ To use macros, import using:
 
 ;-----Specification Generation-----
 
-;; Specification Generator
+;-- 
 (defmacro spec/gen [spec &rest args]
   (setv var-env-gen (gensym)
         var-env-data (gensym)

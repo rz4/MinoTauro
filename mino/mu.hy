@@ -1,20 +1,20 @@
 """
 mu.hy
-Updated: 6/14/2020
-Module defines Mu Expression macros for Minotauro development environment.
+Updated: 8/1/2020
+Module defines Mu Expression macros for MinoTauro development environment.
 
-;-- Design Principles
+;-- DESIGN PRINCIPLES
 
-- Should function as a minimal wrapper for PyTorch's Module Objects.
+- Should function as a lightweight wrapper for PyTorch's Module Objects.
 - Should function soley as a macro-imported system.
 
 ;-- TLDR
 
-Minotauro let's you implement lambda-esk 'anonymous PyTorch Modules' referred to as 'mu expressions'.
-Minotauro let's you bind parameters and modules to a mu expression.
-Minotauro gives you Pythonic data accessing calls.
-Minotauro allows you to revert a models back to an S-Expressions.
-And it all works inline with native PyTorch!
+MinoTauro lets you implement lambda-esk 'anonymous PyTorch Modules' referred to as 'mu expressions'.
+MinoTauro lets you bind parameters and modules to a mu expression.
+MinoTauro promotes Pythonic data accessing calls.
+MinoTauro allows you to revert a models back to an S-Expressions.
+And it all remains compatible with native PyTorch!
 
 ;-- FUTURES
 
@@ -26,28 +26,28 @@ To use macros, import using:
 (require [mino.mu [*]])
 """
 
-;-- Imports
+;- Imports
 (import hy [hy.contrib.walk [macroexpand-all]])
 
-;-----MU-Expressions------
+;-----Mu-Expressions-----
 
+;--
 (defmacro register-mu []
-  """ Mu's Hy Representation for Hy's Contributed hy-repr Package
+  """ Mu's Hy Representation Register for hy-repr Package:
 
-  Macro expands to an expression which defines a hy-repr function which takes in an evaulated Mu
-  object and outputs a string representing the object as an unevaluated Hy expression.
+  Macroexpands to an expression which defines a hy-repr for mu objects. When 
+  hy-repr is called on a mu object, a string representing the mu object as an 
+  unevaluated HyExpression is returned.
 
   If the Mu object contains any nested Mu objects, those child objects are also
-  converted to unevaluated Hy expressions and wrap the parent expression with `bind`.
+  converted to unevaluated Hy expressions and wrap the parent expression through
+  `bind`.
 
-  Any binded Torch parameters are lost during the conversion, and which leaves unoccupied entry
-  points to the computational graph.
-
-  The function is then registered to hy.contrib.hy-repr package if not already
-  found in registry.
+  The operation is then registered to the hy.contrib.hy-repr package if not 
+  already found in registry.
 
   Returns:
-    HyExpression: Expanded expression of hy-repr registry entry for
+    (HyExpression) : Expanded expression of hy-repr registry entry for mu object.
 
   Todo:
 
@@ -55,116 +55,162 @@ To use macros, import using:
       a single mu expression.
 
   """
-  `(do (import [torch.nn [Module]]
-               [hy.contrib.hy-repr [hy-repr-register hy-repr -registry]])
+  `(do (import re 
+               [torch.nn [Module Parameter]]
+               [dill.source [getsource _namespace]]
+               [textwrap [dedent]]
+               [hy.contrib.hy-repr [hy-repr-register -registry]])
 
-       ;-- Add to hy-repr registry if it doesn't exist
+       ;- Add to hy-repr registry if it doesn't exist
        (unless (in Module -registry)
+                
+         ;-
+         (defn param-repr [param]
+           (.format "(torch.nn.Parameter (torch.empty (, {})))"
+             (.join " " (lfor s (.size param) (str s)))))
+         
+         ;-
+         (defn mu-import [module]
+           (setv forward (getsource (. module forward))
+                 forward (re.split "def forward\(self\,(.*)\)\:" forward)
+                 code (dedent (re.sub "self\." "" (get forward 2)))
+                 code (re.sub "#.*\\n" "\\n" code)
+                 comps (lfor arg (.split (get forward 1) ",") 
+                             (HySymbol (get (.split (.strip arg) "=") 0))))
+           (for [v (dir module)] 
+             (when (instance? (, Module Parameter) 
+                              (eval `(. module ~(HySymbol v))))
+                   (.append comps (HySymbol v))))
+           (, `[~@comps] `((pys ~code))))
 
-         ;-- Define Object to Hy Expression String Conversion
+         ;- Define Object to Hy Expression String Conversion
          (defn mu-repr [mu]
-            (setv mu-str (.format "(mu {args} {forms})"
-                           :args (cut (hy-repr mu.arguments) 1)
-                           :forms (cut (hy-repr mu.expression) 2 -1))
-                  sub-mus {})
-            (for [arg mu.arguments]
-              (setv component (eval `(. mu ~arg)))
-              (when (instance? Module component)
-                (assoc sub-mus arg component)))
-            (unless (empty? sub-mus)
-              (setv mu-str (.format "(bind {}" mu-str))
-              (for [sub sub-mus]
-                (+= mu-str (.format " :{} {}" sub (mu-repr (get sub-mus sub)))))
-              (setv mu-str (.format "{})" mu-str)))
-            mu-str)
+           (setv path (_namespace mu))
+           (when (= "torch.nn" (.join "." (cut path 0 2)))
+             (setv v (get (.split (.__repr__ mu) "(" 1) 1)
+                   v (.replace v "," " ")
+                   v (.replace v "(" "(, ")
+                   v (re.sub "(\\S+)\=" ":\\1 " v)
+                   v (.join " " (.split v)))
+             (return (.format "({} {})" 
+                              (.join "." path)
+                              v)))
+           (if (in 'components (dir mu))
+             (setv args (. mu components)
+                   forms (. mu fexpression)
+                   comps {})
+             (setv (, args forms) (mu-import mu)
+                   comps {}))
+           (for [a args] 
+             (when (in a (dir mu)) 
+                 (assoc comps a (eval `(. mu ~a)))))
+           (setv mu-expr (.format "(mu {} {})"
+                           (cut (hy-repr args) 1)
+                           (cut (hy-repr forms) 2 -1))
+                 bindables (flatten (lfor c comps 
+                                      (do (setv a (get comps c))
+                                          (cond [(instance? Module a) [(+ ":" c) (mu-repr a)]]
+                                                [(instance? Parameter a) [(+ ":" c) (hy-repr a)]]
+                                                [True []])))))
+           (if (empty? bindables)
+               mu-expr 
+               (.format "(bind {} {})"
+                 mu-expr
+                 (.join " " bindables))))
 
+         ;- Register functions
+         (hy-repr-register Parameter param-repr)
          (hy-repr-register Module mu-repr))))
 
+;--
 (defmacro defmu [module-name required-components &rest forward-procedure]
   """ PyTorch Module Mu-Expression Definition Macro:
-  Macro expands to a new namespaced PyTorch Module Class definition.
-  Macro syntax mirrors the definition of namespaced lambda functions and
-  allows PyTorch Modules to be expressed as first-class functions with bind-able components.
+  
+  Macroexpands to a new namespaced PyTorch Module class definition.
+  Macro syntax mirrors the definition of namespaced functions (defn),
+  allowing PyTorch Modules to be expressed with concise function syntax.
+  
+  All inputs to the forward call are treated as required components 
+  and raise a ValueError if a component is not passed during the forward call. 
+  When creating a new instance a mu, default values for components 
+  can be set through their corresponding keyword arguments. If set, the value is 
+  bound to that component argument and will be used during forward propagation 
+  unless another value is supplied during the forward call. Components binding
+  can also be done at any time through the 'bind' macro (refer to documentation 
+  for 'bind').
 
-  The arguments are as follows:
-  - module-name: the name of the PyTorch Module Class
-  - required-components: the list of parameters required by the forward procedure
-  - forward-procedure: the procedure definition
+  The modules' 'extra_repr' has been overloaded to show their components, 
+  forward-procedure expression, and sub-modules/parameters.
 
-  All parameters are treated as required components for the forward procedure as they are
-  set as local variables of the PyTorch Module for stable opertation broadcasting to
-  sub-components. This allows the PyTorchs auto differentiation to chain Mu definitions over
-  the full computational graph and for movement of the graphs to and from devices.
-  Also allows access to any sub-module and parameters of a module using Pythonic dot notation.
+  A hy-repr is registered which when called on a module, returns Hy code of the 
+  module as as mu expressions of the full computational graph with substutions of 
+  all nested components into the root module.
 
-  When creating a new instance of a mu, default values for the components can be set through keyword arguments.
-  These will be used during forward propagation unless overloaded with other values during
-  the forward call.
-
-  The extra_repr has been overloaded to show components, forward-procedure expressions, and sub-modules/parameters.
-
-  A hy-repr is registered which when called on a module, it returns Hy code of the module as a mu expression
-  of the full computational graph with substutions of all nested modules into the root module.
-
-  If there at least two body forms, and the first of them is a string literal, this string
-  becomes the docstring of the module class.
-
+  Like function definitions, a docstring can be assigned for the module class
+  with the first form of the forward procedure as a string.
+  
   Args:
 
-    param1 (int): The first parameter.
-    param2 (str): The second parameter.
+    module-name (HySymbol): the name of the new PyTorch Module class.
+    required-components (HyList[HySymbol]): the list of parameters/submodules 
+                                            required in the forward procedure.
+    forward-procedure (&rest HyExpression): the operations run during forward propagation.
 
   Returns:
 
+    (HyExpression): Expanded Pytorch Module class definition code.
 
   Todo:
 
-    * Add function to simplify all components and sub-components into
-      a single mu expression.
+    * 
   """
-  ; Argument Asserts
+  ;- Argument Checks
   (assert (instance? HySymbol module-name)
-    (.format "Arg 1 must be HySymbol. Found {t}" :t (name (type module-name))))
+    (.format "Arg 1 must be HySymbol. Found {}" 
+             (name (type module-name))))
   (assert (instance? HyList required-components)
-    (.format "Arg 2 must be HyList. Found {t}" :t (name (type require-components))))
+    (.format "Arg 2 must be HyList. Found {}" 
+             (name (type require-components))))
   (assert (every? (fn [x] (instance? HySymbol x)) required-components)
     "Arg 2 must be HyList of HySymbols.")
   (assert (> (len forward-procedure) 0)
-    "Forward procedure must be defined.")
+    "Arg 3 (forward procedure) must be defined.")
 
-  ; Generate default args expressions
+  ;- Generate mu's default argus expressions
   (setv args (lfor c required-components [c None])
         forward-procedure (lfor p forward-procedure p))
 
-  ; Generate init-body
+  ;- Generate mu's __init__ body
   (setv init-body '(setv))
   (for [c required-components]
     (+= init-body `((. self ~c) ~c)))
 
-  ; Generate component dispatcher
+  ;- Generate mus's component dispatcher
   (setv dispatcher '(setv))
   (for [c required-components]
     (+= dispatcher `(~c (if (none? ~c)
                           (. self ~c)
                           ~c))))
 
-  ; Generate Required Argument Asserter
+  ;- Generate mu's required argument checks
   (setv asserters '[])
   (for [c required-components]
-    (+= asserters `((assert (not (none? ~c))
-                      (.format "Arg {m} is not defined." :m (quote ~c))))))
+    (+= asserters
+        `((assert (not (none? ~c))
+                  (ValueError (.format "Arg {} is not defined." 
+                                       (quote ~c)))))))
 
-  ; Macro expand forward-procedure & check for doc string
-  (setv forward-procedure (macroexpand forward-procedure)
+  ;- Macroexpand forward-procedure & check for doc string
+  (setv forward-procedure (macroexpand-all forward-procedure)
         doc-str "")
   (while (instance? HyString (first forward-procedure))
     (+= doc-str (first forward-procedure))
     (setv forward-procedure (cut forward-procedure 1)))
 
-  ; Expand Mu Representation Register
+  ;- Expand mu representation register
   (setv register (macroexpand '(register-mu)))
 
-  ; Mu Expression Expansion
+  ;- Mu Expression Expansion to PyTorch module
   `(do (import [torch.nn [Module]]
                [hy.contrib.hy-repr [hy-repr]])
        ~register
@@ -174,72 +220,87 @@ To use macros, import using:
            (.__init__ (super ~module-name self))
            ~init-body
            (setv self.identifier (repr (name (gensym)))
-                 self.expression (quote (~@forward-procedure))
-                 self.arguments (quote [~@required-components])))
+                 self.components (quote [~@required-components])
+                 self.fexpression (quote (~@forward-procedure))))
          (defn forward [self &optional ~@args]
            ~dispatcher
            ~@asserters
            ~@forward-procedure)
          (defn extra_repr [self]
-           (setv params (lfor (, key param) (self._parameters.items)
-                          (.format "{k}: Parameter(size: {s} dtype: {d})"
-                            :k key
-                            :s (-> param .size name (.split "(") last (cut 0 -1))
-                            :d param.dtype))
-                 params (if (empty? params) "" (+ "\n" (.join "\n" params) "\n")))
-           (+ "ID: " (cut self.identifier 1 -1) "\n"
-              "C: " (cut (hy-repr self.arguments) 1) "\n"
-              "λ: " (cut (hy-repr self.expression) 2 -1) "\n"
-              params)))))
+           (setv params 
+                 (lfor (, key param) (self._parameters.items)
+                   (.format "{}: (Parameter :size {} :dtype {})"
+                     key
+                     (-> param .size name (.split "(") last (cut 0 -1))
+                     param.dtype)))
+           (.format "ID: {}\nC: {}\nλ: {}\n{}"
+             (cut self.identifier 1 -1)
+             (cut (hy-repr self.components) 1)
+             (cut (hy-repr self.fexpression) 2 -1)
+             (if (empty? params) "" (.format "{}\n" (.join "\n" params))))))))
 
+;--
 (defmacro mu [required-components &rest forward-procedure]
-  """ PyTorch Anonymous Module Sigmod Definitions Macro:
-  Macro expands to a new instance of the defined PyTorch Module Class.
-  Macro mirrors the definition of namespaced lambda functions and allows PyTorch Modules to
-  be expressed as first-class functions with bind-able components.
+  """ Anonymous PyTorch Module Mu-Expression Macro:
+  
+  Macroexpands to an anonymous PyTorch Module class instance.
+  Macro syntax mirrors the definition of anonymous functions (fn),
+  allowing PyTorch Modules to be expressed with concise function syntax.
 
-  The arguments are as follows:
-  - required-components: the list of parameters required by the forward procedure
-  - forward-procedure: the procedure definition
-
-  For more information on the mechanics of the mu formalism, refer to the defmu
+  'mu' is used to create a single instance of a PyTorch Module. For more 
+  information on the mechanics of the mu objects, refer to 'defmu' 
   documentation.
+  
+  Args:
+
+    required-components (HyList[HySymbol]): the list of parameters/submodules 
+                                            required in the forward procedure.
+    forward-procedure (&rest): the operations run during forward propagation.
+
+  Returns:
+
+    (HyExpression): Expanded PyTorch Module class instance code.
   """
-  ; Argument Asserts
+  ;- Argument Asserts
   (assert (instance? HyList required-components)
-    (.format "Arg 1 must be HyList. Found {t}" :t (name (type require-components))))
+    (.format "Arg 1 must be HyList. Found {}" 
+             (name (type require-components))))
   (assert (every? (fn [x] (instance? HySymbol x)) required-components)
     "Arg 1 must be HyList of HySymbols.")
   (assert (> (len forward-procedure) 0)
     "Forward procedure must be defined.")
 
-  ; Generate default args expressions
-  (setv args (lfor c required-components [c None]))
+  ;- Generate mu's default argus expressions
+  (setv args (lfor c required-components [c None])
+        forward-procedure (lfor p forward-procedure p))
 
-  ; Generate init-body
+  ;- Generate mu's __init__ body
   (setv init-body '(setv))
   (for [c required-components]
     (+= init-body `((. self ~c) ~c)))
 
-  ; Generate component dispatcher
+  ;- Generate mus's component dispatcher
   (setv dispatcher '(setv))
   (for [c required-components]
     (+= dispatcher `(~c (if (none? ~c)
                           (. self ~c)
                           ~c))))
 
-  ; Generate Required Argument Asserter
+  ;- Generate mu's required argument checks
   (setv asserters '[])
   (for [c required-components]
-    (+= asserters `((assert (not (none? ~c))
-                      (.format "Arg {m} is not defined." :m (quote ~c))))))
-
-  ; Macro expand forward-procedure
+    (+= asserters
+        `((assert (not (none? ~c))
+                  (ValueError (.format "Arg {} is not defined." 
+                                       (quote ~c)))))))
+                                     
+  ;- Macroexpand forward-procedure & check for doc string
   (setv forward-procedure (macroexpand-all forward-procedure))
 
-  ; Expand Mu Representation Register
+  ;- Expand mu representation register
   (setv register (macroexpand '(register-mu)))
 
+  ;- Mu Expression Expansion to PyTorch module
   `(do (import [torch.nn [Module]]
                [hy.contrib.hy-repr [hy-repr]])
        ~register
@@ -249,8 +310,8 @@ To use macros, import using:
              (.__init__ (super (type self) self))
              ~init-body
              (setv self.identifier (repr (name (gensym)))
-                   self.expression (quote (~@forward-procedure))
-                   self.arguments (quote [~@required-components])))
+                   self.components (quote [~@required-components])
+                   self.fexpression (quote (~@forward-procedure))))
            "forward"
            (fn [self &optional ~@args]
              ~dispatcher
@@ -258,71 +319,104 @@ To use macros, import using:
              ~@forward-procedure)
            "extra_repr"
            (fn [self]
-             (setv params (lfor (, key param) (self._parameters.items)
-                            (.format "{k}: Parameter(size: {s} dtype: {d})"
-                              :k key
-                              :s (-> param .size name (.split "(") last (cut 0 -1))
-                              :d param.dtype))
-                   params (if (empty? params) "" (+ "\n" (.join "\n" params) "\n")))
-             (+ "iD: " (cut self.identifier 1 -1) "\n"
-                "C: " (cut (hy-repr self.arguments) 1) "\n"
-                "λ: " (cut (hy-repr self.expression) 2 -1) "\n"
-                params))}))))
+             (setv params 
+                 (lfor (, key param) (self._parameters.items)
+                   (.format "{}: (Parameter :size {} :dtype {})"
+                     key
+                     (-> param .size name (.split "(") last (cut 0 -1))
+                     param.dtype)))
+             (.format "ID: {}\nC: {}\nλ: {}\n{}"
+               (cut self.identifier 1 -1)
+               (cut (hy-repr self.components) 1)
+               (cut (hy-repr self.fexpression) 2 -1)
+               (if (empty? params) "" (.format "{}\n" (.join "\n" params)))))}))))
 
+;--
 (defmacro bind [mu &rest args]
-  """ Sigmod Component Binding Macro:
-  Macro expands to a default-component setter for Pytorch Module mus.
-  Evaluated expression returns the newly initialized mu.
+  """ Component Binding Macro:
+  Macroexpands to a default-component setter for mu objects.
+  Evaluated expression returns the newly initialized mu. Values for
+  component are set using their corresponding named HyKeyword.
 
-  Macro takes in the following arguments:
-  - mu: the mu object
-  - args: the list of component name and value pairs.
-
-  Arguments following the mu are pairs of HyKeywords and values.
-  Same as defining optional arguments in functions. HyKeywords should refer to
-  a named component in the mu.
+  Args:
+    
+    mu (Mu Object): Mu object instance.
+    args (&rest): Paired HyKeywords and HySymbol/HyExpression. (ex. :weight value)
+  
+  Returns:
+  
+    (HyExpression): Expanded default component setter code.
   """
+  ;- Argument Asserts
+  (assert (even? (len args))
+    "Args must be paired.")
+  (assert (every? (fn [x] (and (instance? HyKeword (first x))
+                               (not (instance? HyKeyword (last x)))))
+                  (partition required-components 2))
+    "Args must be paired HyKeywords with values.")
 
-  ; Re-initialize PyTorch Module with new components
+  ;- Re-initialize Mu Object with new components
   (setv var (gensym))
   `(do (import [torch.nn [Module]])
        (assert (instance? Module ~mu)
-         (.format "Argument 1 must be a torch.nn.Module. Found {t}" :t (name (type ~mu))))
+         (.format "Argument 1 must be a torch.nn.Module. Found {}"
+                  (name (type ~mu))))
        (setv ~var ~mu)
        (.__init__ ~var ~@args) ~var))
-
-(defmacro mino/apply [iterator apply-procedure]
-  """ Anonymous Pytorch Dataset Macro:
+     
+;--
+(defmacro mino/apply [iterable lambda]
+  """ Anonymous Pytorch Dataset Macro: 
+  
+  Macroexpands to an anonymous instance of a PyTorch Dataset.
+  The Dataset definition is built around a user specified iteratable
+  object and a lambda expression applied along each element of the 
+  iterable object.
+  
+  This expression can be passed to a PyTorch DataLoader for
+  data batching.
+  
+  Args:
+  
+    iterable (Object): Object capable of iterated indexing.
+    lambda (function): Function used to map data to Tensors.
+    
+  Returns:
+  
+    (HyExpression) : Expanded PyTorch Dataset code.
+  
   """
-  (macroexpand-all
-    `(do (import [torch.utils.data [Dataset]])
-         ((type "apply" (, Dataset)
-           {"__init__"
-            (fn [self]
-              (.__init__ (super (type self) self))
-              (setv self.data ~iterator
-                    self.LAMBDA ~apply-procedure
-                    self.NB (len self.data)))
-            "__len__"
-            (fn [self] self.NB)
-            "__getitem__"
-            (fn [self index]
-              (setv x (get self.data index))
-              (self.LAMBDA x))})))))
+  `(do (import [torch.utils.data [Dataset]])
+       ((type "" (, Dataset)
+          {"__init__"
+           (fn [self]
+             (.__init__ (super (type self) self))
+             (setv self.data ~iterable
+                   self.LAMBDA ~lambda
+                   self.NB (len self.data)))
+           "__len__"
+           (fn [self] self.NB)
+           "__getitem__"
+           (fn [self index]
+             (setv x (get self.data index))
+             (self.LAMBDA x))}))))
 
 ;-----COMMON-UTILITIES------
 
+;--
 (defmacro geta [x &rest args]
   """ Macro for mulitdimensional indexing of Numpy, Pandas, and PyTorch arrays:
+  
   Macro provides ease-of-life indexing by allowing
   indexing similar to native python multi-array indexing.
 
   Example:
-  (geta x [:] [:] [1])
+  
+    (geta x [:] [:] [1])
 
-  equivalent to
+    is equivalent to
 
-  x[:,:,1]
+    x[:,:,1]
   """
   (setv slices '[]
         x-pointer x)
