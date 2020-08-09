@@ -14,5 +14,5 @@ setup(
     package_data={
         'mino': ['*.hy', '*.py'],
     },
-    install_requires = ["hy==0.18.0", "torch"],
+    install_requires = ["hy", "torch",  "dill"],
 )
