@@ -1,4 +1,4 @@
-![LOGO](docs/source/_static/imgs/logo.png)
+![LOGO](docs/_static/imgs/logo.png)
 # (spec/def :MinoTauro (spec/and Hy? PyTorch?))
 
 *If all the ways I have been along were marked on a map and joined up with a line, it might represent a minotaur.*
