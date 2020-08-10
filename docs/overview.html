@@ -304,26 +304,27 @@ during the forward pass of <code class="docutils literal notranslate"><span clas
 
 <span class="o">;</span> <span class="n">Returns</span>
 <span class="s">&quot;&quot;&quot;</span>
-<span class="s">FeedForwardNeuralNetwork(</span>
-<span class="s">  ID: -G\uffff7</span>
+<span class="s">FeedForward(</span>
+<span class="s">  ID: -G\uffff6</span>
 <span class="s">  C: [x linear-to-hidden linear-to-output]</span>
 <span class="s">  λ: (linear-to-output (torch.sigmoid (linear-to-hidden x)))</span>
 
+
 <span class="s">  (linear_to_hidden): LinearTransformation(</span>
+<span class="s">    ID: -G\uffff4</span>
+<span class="s">    C: [x weights bias]</span>
+<span class="s">    λ: (+ (@ x weights) bias)</span>
+
+<span class="s">    weights: (Parameter :size [10 10] :dtype torch.float32)</span>
+<span class="s">    bias: (Parameter :size [10] :dtype torch.float32)</span>
+
+<span class="s">  )</span>
+<span class="s">  (linear_to_output): LinearTransformation(</span>
 <span class="s">    ID: -G\uffff5</span>
 <span class="s">    C: [x weights bias]</span>
 <span class="s">    λ: (+ (@ x weights) bias)</span>
 
-<span class="s">    weights: (Parameter :size [10 32] :dtype torch.float32)</span>
-<span class="s">    bias: (Parameter :size [32] :dtype torch.float32)</span>
-
-<span class="s">  )</span>
-<span class="s">  (linear_to_output): LinearTransformation(</span>
-<span class="s">    ID: -G\uffff6</span>
-<span class="s">    C: [x weights bias]</span>
-<span class="s">    λ: (+ (@ x weights) bias)</span>
-
-<span class="s">    weights: (Parameter :size [32, 1] :dtype torch.float32)</span>
+<span class="s">    weights: (Parameter :size [10 1] :dtype torch.float32)</span>
 <span class="s">    bias: (Parameter :size [1] :dtype torch.float32)</span>
 
 <span class="s">  )</span>
@@ -338,12 +339,12 @@ This make exploring a model easy and intuitive:</p>
 <span class="o">;</span> <span class="n">Returns</span>
 <span class="s">&quot;&quot;&quot;</span>
 <span class="s">LinearTransformation(</span>
-<span class="s">  ID: -G\uffff1</span>
+<span class="s">  ID: -G\uffff4</span>
 <span class="s">  C: [x weights bias]</span>
 <span class="s">  λ: (+ (@ x weights) bias)</span>
 
-<span class="s">  weights: (Parameter :size [10 32] :dtype torch.float32)</span>
-<span class="s">  bias: (Parameter :size [32] :dtype torch.float32)</span>
+<span class="s">  weights: (Parameter :size [10 10] :dtype torch.float32)</span>
+<span class="s">  bias: (Parameter :size [10] :dtype torch.float32)</span>
 
 <span class="s">)</span>
 <span class="s">&quot;&quot;&quot;</span>
@@ -387,7 +388,32 @@ a new object of a namespaced <code class="docutils literal notranslate"><span cl
 </div>
 <div class="section" id="reverting-models-to-expressions">
 <h3>Reverting Models to Expressions<a class="headerlink" href="#reverting-models-to-expressions" title="Permalink to this headline">¶</a></h3>
-<p>MinoTauro lets you take model and revert it back to an S-expression.</p>
+<p>MinoTauro lets you take a model and revert it back to an S-expression using
+<code class="docutils literal notranslate"><span class="pre">hy.contrib.hy-repr</span></code>. The S-expression model code contains the mu expressions
+and parameter configurations of all nested components. Though the current
+implementation of this feature works best for models which are implemented as
+MinoTauro models, we are working on providing the functionality to revert any
+PyTorch module into a S-expression.</p>
+<p>We believe having this capability will open new avenues for researching meta-learning
+on computational graphs and streamline the
+implementation of machine learning methods which perform expression manipulation
+such as genetic programming.</p>
+<p>An example of this feature on the previous <code class="docutils literal notranslate"><span class="pre">FeedForwardNeuralNetwork</span></code> model
+is the following:</p>
+<div class="highlight-hy notranslate"><div class="highlight"><pre><span></span><span class="o">;</span> <span class="n">Define</span> <span class="n">Model</span>
+<span class="o">(</span><span class="n">setv</span> <span class="n">model</span> <span class="o">(</span><span class="n">NeuralNetwork</span> <span class="mi">10</span> <span class="mi">32</span> <span class="mi">1</span><span class="o">))</span>
+<span class="o">(</span><span class="nb">print</span> <span class="o">(</span><span class="n">hy</span><span class="o">-</span><span class="n">repr</span> <span class="n">model</span><span class="o">))</span>
+
+<span class="o">;</span> <span class="n">Returns</span>
+<span class="s">&quot;(bind (mu [x linear-to-hidden linear-to-output] (linear-to-output (torch.sigmoid (linear-to-hidden x))))</span>
+<span class="s">       :linear-to-hidden (bind (mu [x weights bias] (+ (@ x weights) bias))</span>
+<span class="s">                               :weights (torch.nn.Parameter (torch.empty (, 10 32) :dtype torch.float32))</span>
+<span class="s">                               :bias (torch.nn.Parameter (torch.empty (, 32) :dtype torch.float32)))</span>
+<span class="s">       :linear-to-output (bind (mu [x weights bias] (+ (@ x weights) bias))</span>
+<span class="s">                               :weights (torch.nn.Parameter (torch.empty (, 32 1) :dtype torch.float32))</span>
+<span class="s">                               :bias (torch.nn.Parameter (torch.empty (, 1) :dtype torch.float32))))&quot;</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="advanced-expression-threading">
 <h3>Advanced Expression Threading<a class="headerlink" href="#advanced-expression-threading" title="Permalink to this headline">¶</a></h3>

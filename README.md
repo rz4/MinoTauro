@@ -24,10 +24,10 @@ for experiments in deep learning meta-programming.
 ## Documentation
 
 We are currently working on migrating all MinoTauro's documentation to
-a Github page. It is under active development, so keep come back every now and then
+a new GitHub page. It is under active development, so keep coming back every now and then
 to see updates.
 
-You can view the api here:
+You can view the API here:
 
 [https://rz4.github.io/MinoTauro](https://rz4.github.io/MinoTauro)
 
