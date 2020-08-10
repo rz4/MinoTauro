@@ -4,8 +4,5 @@ jupyter/dist
 *.ipynb_checkpoints
 .DS_Store
 __pycache__
-Development.ipynb
-build
 dist
-hytorch.egg*
 tests

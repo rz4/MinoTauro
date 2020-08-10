@@ -1,4 +1,4 @@
-![LOGO](images/name.png)
+![LOGO](docs/source/_static/imgs/logo.png)
 # (spec/def :MinoTauro (spec/and Hy? PyTorch?))
 
 *If all the ways I have been along were marked on a map and joined up with a line, it might represent a minotaur.*
@@ -47,12 +47,12 @@ refactoring, and manipulation of model code using macros. Here is a short exampl
 of defining a single layer feed forward neural network using MinoTauro and
 then training a generated model on dummy data.
 
-```hy 
+```hy
 ; Requires
 (require [mino.mu [*]]
          [mino.thread [*]]
          [hy.contrib.walk [let]])
-         
+
 ; Imports
 (import torch
         [torch.nn.functional :as F]
