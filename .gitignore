@@ -6,3 +6,4 @@ jupyter/dist
 __pycache__
 dist
 tests
+_docs
