@@ -15,11 +15,11 @@ Lead Maintainer: [Rafael Zamora-Resendiz](https://github.com/rz4)
 for use in rapid low-level development of differential programs as well as
 for experiments in deep learning meta-programming.
 
-MinoTauro lets you implement lambda-esk 'anonymous PyTorch Modules' referred to as 'mu expressions'.
-MinoTauro lets you bind parameters and modules to a mu expression.
-MinoTauro promotes Pythonic data accessing calls.
-MinoTauro allows you to revert a models back to an S-Expressions.
-And it all remains compatible with native PyTorch!
+- MinoTauro lets you implement lambda-esk 'anonymous PyTorch Modules' referred to as 'mu expressions'.
+- MinoTauro lets you bind parameters and modules to a mu expression.
+- MinoTauro promotes Pythonic data accessing calls.
+- MinoTauro allows you to revert a models back to an S-Expressions.
+- And it all remains compatible with native PyTorch!
 
 ## Documentation
 
