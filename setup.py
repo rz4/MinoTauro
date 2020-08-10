@@ -10,7 +10,7 @@ setup(
     description="PyTorch Meta-Programming Using the Lisp Dialect Hy",
     license="MIT",
     keywords="Hy PyTorch Meta",
-    packages=find_packages(exclude=["images", "jupyter", "notebooks"]),
+    packages=find_packages(exclude=["images", "jupyter", "notebooks" "docs"]),
     package_data={
         'mino': ['*.hy', '*.py'],
     },

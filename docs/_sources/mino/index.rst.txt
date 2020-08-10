@@ -1,0 +1,9 @@
+mino
+=====================================
+
+.. toctree::
+   :maxdepth: 2
+
+   mu/index
+   thread/index
+   spec/index
