@@ -221,7 +221,7 @@ To use macros, import using:
          (defn __init__ [self &optional ~@args]
            (.__init__ (super ~module-name self))
            ~init-body
-           (setv self.identifier (repr (name (gensym)))
+           (setv self.address (hex (id self))
                  self.components (quote [~@required-components])
                  self.fexpression (quote (~@forward-procedure))))
          (defn forward [self &optional ~@args]
@@ -235,8 +235,8 @@ To use macros, import using:
                      key
                      (-> param .size name (.split "(") last (cut 0 -1) (.replace "," ""))
                      param.dtype)))
-           (.format "ID: {}\nC: {}\nλ: {}\n\n{}"
-             (cut self.identifier 1 -1)
+           (.format "At: {}\nC: {}\nλ: {}\n\n{}"
+             self.address
              (cut (hy-repr self.components) 1)
              (cut (hy-repr self.fexpression) 2 -1)
              (if (empty? params) "" (.format "{}\n" (.join "\n" params))))))))
@@ -311,7 +311,7 @@ To use macros, import using:
            (fn [self &optional ~@args]
              (.__init__ (super (type self) self))
              ~init-body
-             (setv self.identifier (repr (name (gensym)))
+             (setv self.address (hex (id self))
                    self.components (quote [~@required-components])
                    self.fexpression (quote (~@forward-procedure))))
            "forward"
@@ -327,8 +327,8 @@ To use macros, import using:
                      key
                      (-> param .size name (.split "(") last (cut 0 -1) (.replace "," ""))
                      param.dtype)))
-             (.format "ID: {}\nC: {}\nλ: {}\n\n{}"
-               (cut self.identifier 1 -1)
+             (.format "At: {}\nC: {}\nλ: {}\n\n{}"
+               self.address
                (cut (hy-repr self.components) 1)
                (cut (hy-repr self.fexpression) 2 -1)
                (if (empty? params) "" (.format "{}\n" (.join "\n" params)))))}))))

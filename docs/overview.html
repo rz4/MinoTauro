@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Overview &mdash; MinoTauro 0.0.9 documentation</title>
+  <title>overview &mdash; MinoTauro 0.0.9 documentation</title>
   
 
   
@@ -37,8 +37,8 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Tutorials" href="tutorials/index.html" />
-    <link rel="prev" title="MinoTauro API" href="index.html" /> 
+    <link rel="next" title="tutorials" href="tutorials/index.html" />
+    <link rel="prev" title="MinoTauro (0.1.0) API" href="index.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -87,21 +87,26 @@
             
             
               <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">overview</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#motivation">Motivation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#features">Features</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#computational-graphs-as-s-expressions">Computational Graphs as S-Expressions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pytorch-computational-graphs-as-s-expressions">PyTorch Computational Graphs as S-Expressions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#anonymous-mu-expressions-i-e-anonymous-pytorch-modules">Anonymous Mu Expressions (i.e. Anonymous PyTorch Modules)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#reverting-models-to-expressions">Reverting Models to Expressions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reverting-models-to-s-expressions">Reverting Models to S-Expressions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#advanced-expression-threading">Advanced Expression Threading</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#spec-clojure-like-specifications-for-pytorch">Spec (Clojure-like Specifications For PyTorch)</a><ul class="simple">
+<li class="toctree-l3"><a class="reference internal" href="#spec-clojure-like-specifications-for-pytorch">Spec (Clojure-like Specifications For PyTorch)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting Started</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#jupyter-notebook-running-minotauro">Jupyter Notebook Running MinoTauro</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tutorials-api">Tutorials &amp; API</a><ul class="simple">
 </ul>
 </li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/index.html">tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="mino/index.html">mino</a></li>
 </ul>
 
@@ -149,7 +154,7 @@
     
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li>Overview</li>
+      <li>overview</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -169,7 +174,7 @@
            <div itemprop="articleBody">
             
   <div class="section" id="overview">
-<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
+<h1>overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="motivation">
 <h2>Motivation<a class="headerlink" href="#motivation" title="Permalink to this headline">¶</a></h2>
 <p>The dynamic execution of PyTorch operations allows enough flexibility to change
@@ -187,88 +192,88 @@ reproducibility of models more difficult.</p>
 <p>In order to better understand DL models and allow for quick iterative design
 over novel or esoteric architectures, programmers require access to an
 environment which allows low-level definition of computational graphs and
-provides methods to quickly access network components for debugging and analysis,
+provides methods to quickly access network components for refactoring, debugging and analysis,
 while still providing gpu-acceleration. The added expressibility of Lisp in
 combination with PyTorch’s functional API allows for this type of programming
-paradigm, and provides DL researchers an extendable framework which cannot be
-matched by the restrictive set of abstractions allowed in contemporary NN packages.</p>
+paradigm, and provides DL researchers an extendable framework which is not
+matched by abstractions allowed in contemporary NN packages.</p>
 </div>
 <div class="section" id="features">
 <h2>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="computational-graphs-as-s-expressions">
-<h3>Computational Graphs as S-Expressions<a class="headerlink" href="#computational-graphs-as-s-expressions" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="pytorch-computational-graphs-as-s-expressions">
+<h3>PyTorch Computational Graphs as S-Expressions<a class="headerlink" href="#pytorch-computational-graphs-as-s-expressions" title="Permalink to this headline">¶</a></h3>
 <p>Defining models using S-expressions allows for functional design, quick iterative
 refactoring, and manipulation of model code using macros. Here is a short example
 of defining a single layer feed forward neural network using MinoTauro and
 then training a generated model on dummy data:</p>
-<div class="highlight-hy notranslate"><div class="highlight"><pre><span></span><span class="o">;</span> <span class="n">Requires</span>
-<span class="o">(</span><span class="n">require</span> <span class="o">[</span><span class="n">mino</span><span class="o">.</span><span class="na">mu</span> <span class="o">[*]]</span>
-         <span class="o">[</span><span class="n">mino</span><span class="o">.</span><span class="na">thread</span> <span class="o">[*]]</span>
-         <span class="o">[</span><span class="n">hy</span><span class="o">.</span><span class="na">contrib</span><span class="o">.</span><span class="na">walk</span> <span class="o">[</span><span class="n">let</span><span class="o">]])</span>
+<div class="highlight-clojure notranslate"><div class="highlight"><pre><span></span><span class="c1">;- Macros</span>
+<span class="p">(</span><span class="nf">require</span> <span class="p">[</span><span class="nv">mino.mu</span> <span class="p">[</span><span class="nv">*</span><span class="p">]]</span>
+         <span class="p">[</span><span class="nv">mino.thread</span> <span class="p">[</span><span class="nv">*</span><span class="p">]]</span>
+         <span class="p">[</span><span class="nv">hy.contrib.walk</span> <span class="p">[</span><span class="nv">let</span><span class="p">]])</span>
 
-<span class="o">;</span> <span class="n">Imports</span>
-<span class="o">(</span><span class="kn">import</span> <span class="nn">torch</span>
-        <span class="o">[</span><span class="n">torch</span><span class="o">.</span><span class="na">nn</span><span class="o">.</span><span class="na">functional</span> <span class="o">:</span><span class="n">as</span> <span class="n">F</span><span class="o">]</span>
-        <span class="o">[</span><span class="n">torch</span><span class="o">.</span><span class="na">nn</span> <span class="o">:</span><span class="n">as</span> <span class="n">nn</span><span class="o">]</span>
-        <span class="o">[</span><span class="n">torch</span><span class="o">.</span><span class="na">optim</span> <span class="o">[</span><span class="n">Adam</span><span class="o">]])</span>
+<span class="c1">;- Imports</span>
+<span class="p">(</span><span class="nb">import </span><span class="nv">torch</span>
+        <span class="p">[</span><span class="nv">torch.nn.functional</span> <span class="ss">:as</span> <span class="nv">F</span><span class="p">]</span>
+        <span class="p">[</span><span class="nv">torch.nn</span> <span class="ss">:as</span> <span class="nv">nn</span><span class="p">]</span>
+        <span class="p">[</span><span class="nv">torch.optim</span> <span class="p">[</span><span class="nv">Adam</span><span class="p">]])</span>
 
-<span class="o">;;</span> <span class="n">Defines</span> <span class="n">a</span> <span class="n">Linear</span> <span class="n">Transformation</span> <span class="nl">operation:</span>
-<span class="o">(</span><span class="n">defmu</span> <span class="n">LinearTransformation</span> <span class="o">[</span><span class="n">x</span> <span class="n">weights</span> <span class="n">bias</span><span class="o">]</span>
-  <span class="o">(-&gt;</span> <span class="n">x</span> <span class="o">(@</span> <span class="n">weights</span><span class="o">)</span> <span class="o">(+</span> <span class="n">bias</span><span class="o">)))</span>
+<span class="c1">;-- Defines a Linear Transformation operation</span>
+<span class="p">(</span><span class="nf">defmu</span> <span class="nv">LinearTransformation</span> <span class="p">[</span><span class="nv">x</span> <span class="nv">weights</span> <span class="nv">bias</span><span class="p">]</span>
+  <span class="p">(</span><span class="nb">-&gt; </span><span class="nv">x</span> <span class="p">(</span><span class="o">@</span> <span class="nv">weights</span><span class="p">)</span> <span class="p">(</span><span class="nb">+ </span><span class="nv">bias</span><span class="p">)))</span>
 
-<span class="o">;;</span> <span class="n">Defines</span> <span class="n">a</span> <span class="n">constructor</span> <span class="k">for</span> <span class="n">a</span> <span class="n">Linear</span> <span class="n">Transformation</span> <span class="n">with</span> <span class="n">Learnable</span> <span class="n">Parameters</span>
-<span class="o">(</span><span class="n">defn</span> <span class="n">LearnableLinear</span> <span class="o">[</span><span class="n">f</span><span class="o">-</span><span class="n">in</span> <span class="n">f</span><span class="o">-</span><span class="n">out</span><span class="o">]</span>
-  <span class="o">(</span><span class="n">LinearTransformation</span>
-    <span class="o">:</span><span class="n">weights</span> <span class="o">(-&gt;</span> <span class="o">(</span><span class="n">torch</span><span class="o">.</span><span class="na">empty</span> <span class="o">(,</span> <span class="n">f</span><span class="o">-</span><span class="n">in</span> <span class="n">f</span><span class="o">-</span><span class="n">out</span><span class="o">))</span>
-                 <span class="o">(.</span><span class="n">normal_</span> <span class="o">:</span><span class="n">mean</span> <span class="mi">0</span> <span class="o">:</span><span class="n">std</span> <span class="mf">1.0</span><span class="o">)</span>
-                 <span class="o">(</span><span class="n">nn</span><span class="o">.</span><span class="na">Parameter</span> <span class="o">:</span><span class="n">requires_grad</span> <span class="n">True</span><span class="o">))</span>
-    <span class="o">:</span><span class="n">bias</span>    <span class="o">(-&gt;</span> <span class="o">(</span><span class="n">torch</span><span class="o">.</span><span class="na">empty</span> <span class="o">(,</span> <span class="n">f</span><span class="o">-</span><span class="n">out</span><span class="o">))</span>
-                 <span class="o">(.</span><span class="n">normal_</span> <span class="o">:</span><span class="n">mean</span> <span class="mi">0</span> <span class="o">:</span><span class="n">std</span> <span class="mf">1.0</span><span class="o">)</span>
-                 <span class="o">(</span><span class="n">nn</span><span class="o">.</span><span class="na">Parameter</span> <span class="o">:</span><span class="n">requires_grad</span> <span class="n">True</span><span class="o">))))</span>
+<span class="c1">;-- Defines a constructor for a Linear Transformation with learnable parameters</span>
+<span class="p">(</span><span class="kd">defn </span><span class="nv">LearnableLinear</span> <span class="p">[</span><span class="nv">f-in</span> <span class="nv">f-out</span><span class="p">]</span>
+  <span class="p">(</span><span class="nf">LinearTransformation</span>
+    <span class="ss">:weights</span> <span class="p">(</span><span class="nb">-&gt; </span><span class="p">(</span><span class="nf">torch.empty</span> <span class="p">(</span>, <span class="nv">f-in</span> <span class="nv">f-out</span><span class="p">))</span>
+                 <span class="p">(</span><span class="nf">.normal_</span> <span class="ss">:mean</span> <span class="mi">0</span> <span class="ss">:std</span> <span class="mf">1.0</span><span class="p">)</span>
+                 <span class="p">(</span><span class="nf">nn.Parameter</span> <span class="ss">:requires_grad</span> <span class="nv">True</span><span class="p">))</span>
+    <span class="ss">:bias</span>    <span class="p">(</span><span class="nb">-&gt; </span><span class="p">(</span><span class="nf">torch.empty</span> <span class="p">(</span>, <span class="nv">f-out</span><span class="p">))</span>
+                 <span class="p">(</span><span class="nf">.normal_</span> <span class="ss">:mean</span> <span class="mi">0</span> <span class="ss">:std</span> <span class="mf">1.0</span><span class="p">)</span>
+                 <span class="p">(</span><span class="nf">nn.Parameter</span> <span class="ss">:requires_grad</span> <span class="nv">True</span><span class="p">))))</span>
 
-<span class="o">;;</span> <span class="n">Defines</span> <span class="n">a</span> <span class="n">Feed</span> <span class="n">Forward</span> <span class="nl">operation:</span>
-<span class="o">(</span><span class="n">defmu</span> <span class="n">FeedForward</span> <span class="o">[</span><span class="n">x</span> <span class="n">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">hidden</span> <span class="n">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">output</span><span class="o">]</span>
-  <span class="o">(-&gt;</span> <span class="n">x</span>
-      <span class="n">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">hidden</span>
-      <span class="n">torch</span><span class="o">.</span><span class="na">sigmoid</span>
-      <span class="n">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">output</span><span class="o">))</span>
+<span class="c1">;-- Defines a Feed Forward operation</span>
+<span class="p">(</span><span class="nf">defmu</span> <span class="nv">FeedForward</span> <span class="p">[</span><span class="nv">x</span> <span class="nv">linear-to-hidden</span> <span class="nv">linear-to-output</span><span class="p">]</span>
+  <span class="p">(</span><span class="nb">-&gt; </span><span class="nv">x</span>
+      <span class="nv">linear-to-hidden</span>
+      <span class="nv">torch.sigmoid</span>
+      <span class="nv">linear-to-output</span><span class="p">))</span>
 
-<span class="o">;;</span> <span class="n">Define</span> <span class="n">a</span> <span class="n">constructor</span> <span class="k">for</span> <span class="n">a</span> <span class="n">Neural</span> <span class="n">Network</span> <span class="n">with</span> <span class="n">learnable</span> <span class="n">layers</span><span class="o">.</span>
-<span class="o">(</span><span class="n">defn</span> <span class="n">NeuralNetwork</span> <span class="o">[</span><span class="n">nb</span><span class="o">-</span><span class="n">inputs</span> <span class="n">nb</span><span class="o">-</span><span class="n">hidden</span> <span class="n">nb</span><span class="o">-</span><span class="n">outputs</span><span class="o">]</span>
-  <span class="o">(</span><span class="n">FeedForward</span>
-    <span class="o">:</span><span class="n">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">hidden</span> <span class="o">(</span><span class="n">LearnableLinear</span> <span class="n">nb</span><span class="o">-</span><span class="n">inputs</span> <span class="n">nb</span><span class="o">-</span><span class="n">hidden</span><span class="o">)</span>
-    <span class="o">:</span><span class="n">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">output</span> <span class="o">(</span><span class="n">LearnableLinear</span> <span class="n">nb</span><span class="o">-</span><span class="n">hidden</span> <span class="n">nb</span><span class="o">-</span><span class="n">outputs</span><span class="o">)))</span>
+<span class="c1">;-- Defines a constructor for a single-layer Neural Network with learnable mappings</span>
+<span class="p">(</span><span class="kd">defn </span><span class="nv">NeuralNetwork</span> <span class="p">[</span><span class="nv">nb-inputs</span> <span class="nv">nb-hidden</span> <span class="nv">nb-outputs</span><span class="p">]</span>
+  <span class="p">(</span><span class="nf">FeedForward</span>
+    <span class="ss">:linear-to-hidden</span> <span class="p">(</span><span class="nf">LearnableLinear</span> <span class="nv">nb-inputs</span> <span class="nv">nb-hidden</span><span class="p">)</span>
+    <span class="ss">:linear-to-output</span> <span class="p">(</span><span class="nf">LearnableLinear</span> <span class="nv">nb-hidden</span> <span class="nv">nb-outputs</span><span class="p">)))</span>
 
-<span class="o">;;</span> <span class="n">main</span> <span class="o">-</span>
-<span class="o">(</span><span class="n">defmain</span> <span class="o">[&amp;</span><span class="n">rest</span> <span class="n">_</span><span class="o">]</span>
+<span class="c1">;--</span>
+<span class="p">(</span><span class="nf">defmain</span> <span class="p">[</span><span class="o">&amp;</span><span class="nb">rest </span><span class="nv">_</span><span class="p">]</span>
 
-  <span class="o">(</span><span class="nb">print</span> <span class="s">&quot;Loading Model + Data...&quot;</span><span class="o">)</span>
-  <span class="o">(</span><span class="n">let</span> <span class="o">[</span><span class="n">nb</span><span class="o">-</span><span class="n">inputs</span> <span class="mi">10</span> <span class="n">nb</span><span class="o">-</span><span class="n">hidden</span> <span class="mi">32</span> <span class="n">nb</span><span class="o">-</span><span class="n">outputs</span> <span class="mi">1</span><span class="o">]</span>
+  <span class="p">(</span><span class="nb">print </span><span class="s">&quot;Loading Model + Data...&quot;</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">let </span><span class="p">[</span><span class="nv">nb-inputs</span> <span class="mi">10</span> <span class="nv">nb-hidden</span> <span class="mi">32</span> <span class="nv">nb-outputs</span> <span class="mi">1</span><span class="p">]</span>
 
-    <span class="o">;</span> <span class="n">Define</span> <span class="n">Model</span> <span class="o">+</span> <span class="n">Optimizer</span>
-    <span class="o">(</span><span class="n">setv</span> <span class="n">model</span> <span class="o">(</span><span class="n">NeuralNetwork</span> <span class="n">nb</span><span class="o">-</span><span class="n">inputs</span> <span class="n">nb</span><span class="o">-</span><span class="n">hidden</span> <span class="n">nb</span><span class="o">-</span><span class="n">outputs</span><span class="o">)</span>
-          <span class="n">optimizer</span> <span class="o">(</span><span class="n">Adam</span> <span class="o">(.</span><span class="n">parameters</span> <span class="n">model</span><span class="o">)</span> <span class="o">:</span><span class="n">lr</span> <span class="mf">0.001</span> <span class="o">:</span><span class="n">weight_decay</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">5</span><span class="o">))</span>
+    <span class="c1">;- Defines Model + Optimizer</span>
+    <span class="p">(</span><span class="nf">setv</span> <span class="nv">model</span> <span class="p">(</span><span class="nf">NeuralNetwork</span> <span class="nv">nb-inputs</span> <span class="nv">nb-hidden</span> <span class="nv">nb-outputs</span><span class="p">)</span>
+          <span class="nv">optimizer</span> <span class="p">(</span><span class="nf">Adam</span> <span class="p">(</span><span class="nf">.parameters</span> <span class="nv">model</span><span class="p">)</span> <span class="ss">:lr</span> <span class="mf">0.001</span> <span class="ss">:weight_decay</span> <span class="mi">1</span><span class="nv">e-5</span><span class="p">))</span>
 
-    <span class="o">;</span> <span class="n">Generate</span> <span class="n">Dummy</span> <span class="n">Data</span>
-    <span class="o">(</span><span class="n">let</span> <span class="o">[</span><span class="n">batch</span><span class="o">-</span><span class="nb">size</span> <span class="mi">100</span><span class="o">]</span>
-      <span class="o">(</span><span class="n">setv</span> <span class="n">x</span> <span class="o">(-&gt;</span> <span class="o">(</span><span class="n">torch</span><span class="o">.</span><span class="na">empty</span> <span class="o">(,</span> <span class="n">batch</span><span class="o">-</span><span class="nb">size</span> <span class="n">nb</span><span class="o">-</span><span class="n">inputs</span><span class="o">))</span>
-                  <span class="o">(.</span><span class="n">normal_</span> <span class="o">:</span><span class="n">mean</span> <span class="mi">0</span> <span class="o">:</span><span class="n">std</span> <span class="mf">1.0</span><span class="o">))</span>
-            <span class="n">y</span> <span class="o">(</span><span class="n">torch</span><span class="o">.</span><span class="na">ones</span> <span class="o">(,</span> <span class="n">batch</span><span class="o">-</span><span class="nb">size</span> <span class="n">nb</span><span class="o">-</span><span class="n">outputs</span><span class="o">))))</span>
+    <span class="c1">;- Generates Dummy Data</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">[</span><span class="nv">batch-size</span> <span class="mi">100</span><span class="p">]</span>
+      <span class="p">(</span><span class="nf">setv</span> <span class="nv">x</span> <span class="p">(</span><span class="nb">-&gt; </span><span class="p">(</span><span class="nf">torch.empty</span> <span class="p">(</span>, <span class="nv">batch-size</span> <span class="nv">nb-inputs</span><span class="p">))</span>
+                  <span class="p">(</span><span class="nf">.normal_</span> <span class="ss">:mean</span> <span class="mi">0</span> <span class="ss">:std</span> <span class="mf">1.0</span><span class="p">))</span>
+            <span class="nv">y</span> <span class="p">(</span><span class="nf">torch.ones</span> <span class="p">(</span>, <span class="nv">batch-size</span> <span class="nv">nb-outputs</span><span class="p">))))</span>
 
-  <span class="o">;</span> <span class="n">Train</span>
-  <span class="o">(</span><span class="n">let</span> <span class="o">[</span><span class="n">epochs</span> <span class="mi">100</span><span class="o">]</span>
-    <span class="o">(</span><span class="nb">print</span> <span class="s">&quot;Training...&quot;</span><span class="o">)</span>
-    <span class="o">(</span><span class="k">for</span> <span class="o">[</span><span class="n">epoch</span> <span class="o">(</span><span class="n">range</span> <span class="n">epochs</span><span class="o">)]</span>
+  <span class="c1">;- Train</span>
+  <span class="p">(</span><span class="k">let </span><span class="p">[</span><span class="nv">epochs</span> <span class="mi">100</span><span class="p">]</span>
+    <span class="p">(</span><span class="nb">print </span><span class="s">&quot;Training...&quot;</span><span class="p">)</span>
+    <span class="p">(</span><span class="nb">for </span><span class="p">[</span><span class="nv">epoch</span> <span class="p">(</span><span class="nb">range </span><span class="nv">epochs</span><span class="p">)]</span>
 
-      <span class="o">;</span> <span class="n">Forward</span>
-      <span class="o">(</span><span class="n">setv</span> <span class="n">y</span><span class="o">-</span><span class="n">pred</span> <span class="o">(</span><span class="n">model</span> <span class="n">x</span><span class="o">))</span>
-      <span class="o">(</span><span class="n">setv</span> <span class="n">loss</span> <span class="o">(</span><span class="n">F</span><span class="o">.</span><span class="na">binary_cross_entropy_with_logits</span> <span class="n">y</span><span class="o">-</span><span class="n">pred</span> <span class="n">y</span><span class="o">))</span>
-      <span class="o">(</span><span class="nb">print</span> <span class="o">(.</span><span class="n">format</span> <span class="s">&quot;Epoch: {epoch} Loss: {loss}&quot;</span> <span class="o">:</span><span class="n">epoch</span> <span class="n">epoch</span> <span class="o">:</span><span class="n">loss</span> <span class="n">loss</span><span class="o">))</span>
+      <span class="c1">;- Forward</span>
+      <span class="p">(</span><span class="nf">setv</span> <span class="nv">y-pred</span> <span class="p">(</span><span class="nf">model</span> <span class="nv">x</span><span class="p">))</span>
+      <span class="p">(</span><span class="nf">setv</span> <span class="nv">loss</span> <span class="p">(</span><span class="nf">F.binary_cross_entropy_with_logits</span> <span class="nv">y-pred</span> <span class="nv">y</span><span class="p">))</span>
+      <span class="p">(</span><span class="nb">print </span><span class="p">(</span><span class="nf">.format</span> <span class="s">&quot;Epoch: {epoch} Loss: {loss}&quot;</span> <span class="ss">:epoch</span> <span class="nv">epoch</span> <span class="ss">:loss</span> <span class="nv">loss</span><span class="p">))</span>
 
-      <span class="o">;</span> <span class="n">Backward</span>
-      <span class="o">(.</span><span class="n">zero_grad</span> <span class="n">optimizer</span><span class="o">)</span>
-      <span class="o">(.</span><span class="n">backward</span> <span class="n">loss</span><span class="o">)</span>
-      <span class="o">(.</span><span class="n">step</span> <span class="n">optimizer</span><span class="o">))))</span>
+      <span class="c1">;- Backward</span>
+      <span class="p">(</span><span class="nf">.zero_grad</span> <span class="nv">optimizer</span><span class="p">)</span>
+      <span class="p">(</span><span class="nf">.backward</span> <span class="nv">loss</span><span class="p">)</span>
+      <span class="p">(</span><span class="nf">.step</span> <span class="nv">optimizer</span><span class="p">))))</span>
 </pre></div>
 </div>
 <p>PyTorch auto-differential system
@@ -283,7 +288,7 @@ propagation are defined in the argument list. The expressions following the argu
 defines the <code class="docutils literal notranslate"><span class="pre">forward-procedure</span></code>. <code class="docutils literal notranslate"><span class="pre">components</span></code> are typically <code class="docutils literal notranslate"><span class="pre">torch.nn.Parameter</span></code> or
 <code class="docutils literal notranslate"><span class="pre">torch.nn.Module</span></code> .</p>
 <p>Thus, defining a PyTorch module takes on the following form:</p>
-<div class="highlight-hy notranslate"><div class="highlight"><pre><span></span><span class="o">(</span><span class="n">defmu</span> <span class="n">module</span><span class="o">-</span><span class="n">name</span> <span class="o">[</span><span class="n">component</span><span class="o">-</span><span class="mi">0</span> <span class="o">...</span> <span class="n">component</span><span class="o">-</span><span class="n">N</span><span class="o">]</span> <span class="n">forward</span><span class="o">-</span><span class="n">procedure</span><span class="o">)</span>
+<div class="highlight-clojure notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="nf">defmu</span> <span class="nv">module-name</span> <span class="p">[</span><span class="nv">component-0</span> <span class="nv">...</span> <span class="nv">component-N</span><span class="p">]</span> <span class="nv">forward-procedure</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>While PyTorch’s module system uses an object oriented approach, MinoTauro’s abstractions allows
@@ -295,23 +300,23 @@ and parameters.</p>
 <p>Default <code class="docutils literal notranslate"><span class="pre">components</span></code> (or sub-modules in traditional PyTorch) can be binded to
 <code class="docutils literal notranslate"><span class="pre">mu</span></code> when creating a new object. If bound during initialization, the default <code class="docutils literal notranslate"><span class="pre">components</span></code>
 will be used during the forward pass if not provided in the function call.</p>
-<p>As an example, the <code class="docutils literal notranslate"><span class="pre">LearnableLinear</span></code> function in the code example generates a new
+<p>As an example, the <code class="docutils literal notranslate"><span class="pre">LearnableLinear</span></code> function in the above script generates a new
 <code class="docutils literal notranslate"><span class="pre">LinearTransformation</span></code> module with custom default-and-persistent tensors, <code class="docutils literal notranslate"><span class="pre">weights</span></code>
 and <code class="docutils literal notranslate"><span class="pre">bias</span></code>. If arguments <code class="docutils literal notranslate"><span class="pre">weights</span></code> or <code class="docutils literal notranslate"><span class="pre">bias</span></code> are not provided
 during the forward pass of <code class="docutils literal notranslate"><span class="pre">LinearTransformation</span></code>, then these default values are used instead.</p>
 <p>We can view a representation of the computational graph by printing the model:</p>
-<div class="highlight-hy notranslate"><div class="highlight"><pre><span></span><span class="o">(</span><span class="nb">print</span> <span class="n">model</span><span class="o">)</span>
+<div class="highlight-clojure notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="nb">print </span><span class="nv">model</span><span class="p">)</span>
 
-<span class="o">;</span> <span class="n">Returns</span>
+<span class="c1">;- Returns</span>
 <span class="s">&quot;&quot;&quot;</span>
 <span class="s">FeedForward(</span>
-<span class="s">  ID: -G\uffff6</span>
+<span class="s">  At: 0x10c5e3850</span>
 <span class="s">  C: [x linear-to-hidden linear-to-output]</span>
 <span class="s">  λ: (linear-to-output (torch.sigmoid (linear-to-hidden x)))</span>
 
 
 <span class="s">  (linear_to_hidden): LinearTransformation(</span>
-<span class="s">    ID: -G\uffff4</span>
+<span class="s">    At: 0x10c7b22d0</span>
 <span class="s">    C: [x weights bias]</span>
 <span class="s">    λ: (+ (@ x weights) bias)</span>
 
@@ -320,7 +325,7 @@ during the forward pass of <code class="docutils literal notranslate"><span clas
 
 <span class="s">  )</span>
 <span class="s">  (linear_to_output): LinearTransformation(</span>
-<span class="s">    ID: -G\uffff5</span>
+<span class="s">    At: 0x1297e71d0</span>
 <span class="s">    C: [x weights bias]</span>
 <span class="s">    λ: (+ (@ x weights) bias)</span>
 
@@ -334,12 +339,12 @@ during the forward pass of <code class="docutils literal notranslate"><span clas
 </div>
 <p>Accessing and viewing any component of the model is simple and done through python’s dot notation.
 This make exploring a model easy and intuitive:</p>
-<div class="highlight-hy notranslate"><div class="highlight"><pre><span></span><span class="o">(</span><span class="nb">print</span> <span class="n">model</span><span class="o">.</span><span class="na">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">hidden</span><span class="o">)</span>
+<div class="highlight-clojure notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="nb">print </span><span class="nv">model.linear-to-hidden</span><span class="p">)</span>
 
-<span class="o">;</span> <span class="n">Returns</span>
+<span class="c1">;- Returns</span>
 <span class="s">&quot;&quot;&quot;</span>
 <span class="s">LinearTransformation(</span>
-<span class="s">  ID: -G\uffff4</span>
+<span class="s">  At: 0x10c7b22d0</span>
 <span class="s">  C: [x weights bias]</span>
 <span class="s">  λ: (+ (@ x weights) bias)</span>
 
@@ -353,58 +358,64 @@ This make exploring a model easy and intuitive:</p>
 </div>
 <div class="section" id="anonymous-mu-expressions-i-e-anonymous-pytorch-modules">
 <h3>Anonymous Mu Expressions (i.e. Anonymous PyTorch Modules)<a class="headerlink" href="#anonymous-mu-expressions-i-e-anonymous-pytorch-modules" title="Permalink to this headline">¶</a></h3>
-<p>Side effects make systems harder to debug and understand. The <code class="docutils literal notranslate"><span class="pre">mu</span></code> was designed to
-limit the <code class="docutils literal notranslate"><span class="pre">Module</span></code> to a formalized abstraction similar to lambda expressions. MinoTauro allows
+<p>Side effects make systems more difficult to debug and understand. The <code class="docutils literal notranslate"><span class="pre">mu</span></code> was designed to
+reduce the <code class="docutils literal notranslate"><span class="pre">Module</span></code> to an abstraction similar to lambda expressions. MinoTauro allows
 for anonymous PyTorch <code class="docutils literal notranslate"><span class="pre">Modules</span></code> through <code class="docutils literal notranslate"><span class="pre">mu</span></code>. For example, an anonymous Linear function
 can be defined as follows:</p>
-<div class="highlight-hy notranslate"><div class="highlight"><pre><span></span><span class="o">;</span> <span class="n">Anonymous</span> <span class="n">Linear</span>
-<span class="o">(</span><span class="n">mu</span> <span class="o">[</span><span class="n">x</span> <span class="n">w</span> <span class="n">b</span><span class="o">]</span> <span class="o">(-&gt;</span> <span class="n">x</span> <span class="o">(@</span> <span class="n">w</span><span class="o">)</span> <span class="o">(+</span> <span class="n">b</span><span class="o">)))</span>
+<div class="highlight-clojure notranslate"><div class="highlight"><pre><span></span><span class="c1">;- Anonymous Linear</span>
+<span class="p">(</span><span class="nf">mu</span> <span class="p">[</span><span class="nv">x</span> <span class="nv">w</span> <span class="nv">b</span><span class="p">]</span> <span class="p">(</span><span class="nb">-&gt; </span><span class="nv">x</span> <span class="p">(</span><span class="o">@</span> <span class="nv">w</span><span class="p">)</span> <span class="p">(</span><span class="nb">+ </span><span class="nv">b</span><span class="p">)))</span>
 
-<span class="o">;</span> <span class="n">Forward</span> <span class="n">Propagate</span>
-<span class="o">((</span><span class="n">mu</span> <span class="o">[</span><span class="n">x</span> <span class="n">w</span> <span class="n">b</span><span class="o">]</span> <span class="o">(-&gt;</span> <span class="n">x</span> <span class="o">(@</span> <span class="n">w</span><span class="o">)</span> <span class="o">(+</span> <span class="n">b</span><span class="o">)))</span> <span class="n">my</span><span class="o">-</span><span class="n">x</span> <span class="n">my</span><span class="o">-</span><span class="n">w</span> <span class="n">my</span><span class="o">-</span><span class="n">b</span><span class="o">)</span>
+<span class="c1">;- Forward Propagate</span>
+<span class="p">((</span><span class="nf">mu</span> <span class="p">[</span><span class="nv">x</span> <span class="nv">w</span> <span class="nv">b</span><span class="p">]</span> <span class="p">(</span><span class="nb">-&gt; </span><span class="nv">x</span> <span class="p">(</span><span class="o">@</span> <span class="nv">w</span><span class="p">)</span> <span class="p">(</span><span class="nb">+ </span><span class="nv">b</span><span class="p">)))</span> <span class="nv">my-x</span> <span class="nv">my-w</span> <span class="nv">my-b</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>MinoTauro’s macro <code class="docutils literal notranslate"><span class="pre">bind</span></code> can be used to assign default values to components same as when creating
 a new object of a namespaced <code class="docutils literal notranslate"><span class="pre">mu</span></code> with <code class="docutils literal notranslate"><span class="pre">defmu</span></code>. Using the Linear function as an example again:</p>
-<div class="highlight-hy notranslate"><div class="highlight"><pre><span></span><span class="o">;</span> <span class="n">Anonymous</span> <span class="n">Linear</span> <span class="n">with</span> <span class="k">default</span> <span class="n">w</span> <span class="n">and</span> <span class="n">b</span>
-<span class="o">(</span><span class="nb">bind</span> <span class="o">(</span><span class="n">mu</span> <span class="o">[</span><span class="n">x</span> <span class="n">w</span> <span class="n">b</span><span class="o">]</span> <span class="o">(-&gt;</span> <span class="n">x</span> <span class="o">(@</span> <span class="n">w</span><span class="o">)</span> <span class="o">(+</span> <span class="n">b</span><span class="o">)))</span>
-  <span class="o">:</span><span class="n">w</span> <span class="o">(-&gt;</span> <span class="o">(</span><span class="n">torch</span><span class="o">.</span><span class="na">empty</span> <span class="o">(,</span> <span class="n">f</span><span class="o">-</span><span class="n">in</span> <span class="n">f</span><span class="o">-</span><span class="n">out</span><span class="o">))</span>
-         <span class="o">(.</span><span class="n">normal_</span> <span class="o">:</span><span class="n">mean</span> <span class="mi">0</span> <span class="o">:</span><span class="n">std</span> <span class="mf">1.0</span><span class="o">)</span>
-         <span class="o">(</span><span class="n">Parameter</span> <span class="o">:</span><span class="n">requires_grad</span> <span class="n">True</span><span class="o">))</span>
-  <span class="o">:</span><span class="n">b</span> <span class="o">(-&gt;</span> <span class="o">(</span><span class="n">torch</span><span class="o">.</span><span class="na">empty</span> <span class="o">(,</span> <span class="n">f</span><span class="o">-</span><span class="n">out</span><span class="o">))</span>
-         <span class="o">(.</span><span class="n">normal_</span> <span class="o">:</span><span class="n">mean</span> <span class="mi">0</span> <span class="o">:</span><span class="n">std</span> <span class="mf">1.0</span><span class="o">)</span>
-         <span class="o">(</span><span class="n">Parameter</span> <span class="o">:</span><span class="n">requires_grad</span> <span class="n">True</span><span class="o">))))</span>
+<div class="highlight-clojure notranslate"><div class="highlight"><pre><span></span><span class="c1">;- Anonymous Linear with default w and b</span>
+<span class="p">(</span><span class="nf">bind</span> <span class="p">(</span><span class="nf">mu</span> <span class="p">[</span><span class="nv">x</span> <span class="nv">w</span> <span class="nv">b</span><span class="p">]</span> <span class="p">(</span><span class="nb">-&gt; </span><span class="nv">x</span> <span class="p">(</span><span class="o">@</span> <span class="nv">w</span><span class="p">)</span> <span class="p">(</span><span class="nb">+ </span><span class="nv">b</span><span class="p">)))</span>
+  <span class="ss">:w</span> <span class="p">(</span><span class="nb">-&gt; </span><span class="p">(</span><span class="nf">torch.empty</span> <span class="p">(</span>, <span class="nv">f-in</span> <span class="nv">f-out</span><span class="p">))</span>
+         <span class="p">(</span><span class="nf">.normal_</span> <span class="ss">:mean</span> <span class="mi">0</span> <span class="ss">:std</span> <span class="mf">1.0</span><span class="p">)</span>
+         <span class="p">(</span><span class="nf">Parameter</span> <span class="ss">:requires_grad</span> <span class="nv">True</span><span class="p">))</span>
+  <span class="ss">:b</span> <span class="p">(</span><span class="nb">-&gt; </span><span class="p">(</span><span class="nf">torch.empty</span> <span class="p">(</span>, <span class="nv">f-out</span><span class="p">))</span>
+         <span class="p">(</span><span class="nf">.normal_</span> <span class="ss">:mean</span> <span class="mi">0</span> <span class="ss">:std</span> <span class="mf">1.0</span><span class="p">)</span>
+         <span class="p">(</span><span class="nf">Parameter</span> <span class="ss">:requires_grad</span> <span class="nv">True</span><span class="p">))))</span>
 
-<span class="o">;</span> <span class="n">Namespaced</span> <span class="n">Linear</span> <span class="n">with</span> <span class="k">default</span> <span class="n">w</span> <span class="n">and</span> <span class="n">b</span>
-<span class="o">(</span><span class="n">Linear</span>
-  <span class="o">:</span><span class="n">w</span> <span class="o">(-&gt;</span> <span class="o">(</span><span class="n">torch</span><span class="o">.</span><span class="na">empty</span> <span class="o">(,</span> <span class="n">f</span><span class="o">-</span><span class="n">in</span> <span class="n">f</span><span class="o">-</span><span class="n">out</span><span class="o">))</span>
-         <span class="o">(.</span><span class="n">normal_</span> <span class="o">:</span><span class="n">mean</span> <span class="mi">0</span> <span class="o">:</span><span class="n">std</span> <span class="mf">1.0</span><span class="o">)</span>
-         <span class="o">(</span><span class="n">Parameter</span> <span class="o">:</span><span class="n">requires_grad</span> <span class="n">True</span><span class="o">))</span>
-  <span class="o">:</span><span class="n">b</span> <span class="o">(-&gt;</span> <span class="o">(</span><span class="n">torch</span><span class="o">.</span><span class="na">empty</span> <span class="o">(,</span> <span class="n">f</span><span class="o">-</span><span class="n">out</span><span class="o">))</span>
-         <span class="o">(.</span><span class="n">normal_</span> <span class="o">:</span><span class="n">mean</span> <span class="mi">0</span> <span class="o">:</span><span class="n">std</span> <span class="mf">1.0</span><span class="o">)</span>
-         <span class="o">(</span><span class="n">Parameter</span> <span class="o">:</span><span class="n">requires_grad</span> <span class="n">True</span><span class="o">))))</span>
+<span class="c1">;- Namespaced Linear with default w and b</span>
+<span class="p">(</span><span class="nf">Linear</span>
+  <span class="ss">:w</span> <span class="p">(</span><span class="nb">-&gt; </span><span class="p">(</span><span class="nf">torch.empty</span> <span class="p">(</span>, <span class="nv">f-in</span> <span class="nv">f-out</span><span class="p">))</span>
+         <span class="p">(</span><span class="nf">.normal_</span> <span class="ss">:mean</span> <span class="mi">0</span> <span class="ss">:std</span> <span class="mf">1.0</span><span class="p">)</span>
+         <span class="p">(</span><span class="nf">Parameter</span> <span class="ss">:requires_grad</span> <span class="nv">True</span><span class="p">))</span>
+  <span class="ss">:b</span> <span class="p">(</span><span class="nb">-&gt; </span><span class="p">(</span><span class="nf">torch.empty</span> <span class="p">(</span>, <span class="nv">f-out</span><span class="p">))</span>
+         <span class="p">(</span><span class="nf">.normal_</span> <span class="ss">:mean</span> <span class="mi">0</span> <span class="ss">:std</span> <span class="mf">1.0</span><span class="p">)</span>
+         <span class="p">(</span><span class="nf">Parameter</span> <span class="ss">:requires_grad</span> <span class="nv">True</span><span class="p">))))</span>
 </pre></div>
 </div>
 </div>
-<div class="section" id="reverting-models-to-expressions">
-<h3>Reverting Models to Expressions<a class="headerlink" href="#reverting-models-to-expressions" title="Permalink to this headline">¶</a></h3>
-<p>MinoTauro lets you take a model and revert it back to an S-expression using
-<code class="docutils literal notranslate"><span class="pre">hy.contrib.hy-repr</span></code>. The S-expression model code contains the mu expressions
-and parameter configurations of all nested components. Though the current
-implementation of this feature works best for models which are implemented as
-MinoTauro models, we are working on providing the functionality to revert any
-PyTorch module into a S-expression.</p>
-<p>We believe having this capability will open new avenues for researching meta-learning
-on computational graphs and streamline the
-implementation of machine learning methods which perform expression manipulation
-such as genetic programming.</p>
-<p>An example of this feature on the previous <code class="docutils literal notranslate"><span class="pre">FeedForwardNeuralNetwork</span></code> model
+<div class="section" id="reverting-models-to-s-expressions">
+<h3>Reverting Models to S-Expressions<a class="headerlink" href="#reverting-models-to-s-expressions" title="Permalink to this headline">¶</a></h3>
+<p>MinoTauro lets you revert models defined as mu expressions back to S-Expressions using
+<code class="docutils literal notranslate"><span class="pre">hy.contrib.hy-repr</span></code>. The output model code contains mu expressions
+and parameter configurations for the parent module and all nested components.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Though the current implementation (0.1.0) of model reversion works best for models which are implemented
+exclusively with MinoTauro and <code class="docutils literal notranslate"><span class="pre">torch.nn</span></code>, we are working on expanding the functionality to revert any
+PyTorch module into a valid S-expression.</p>
+<p>The next update will work on reverting <code class="docutils literal notranslate"><span class="pre">torch.jit</span></code> scripts to S-Expressions to
+help import module definitions of PyTorch models developed in native Python
+to MinoTauro <cite>mu-expressions</cite>.</p>
+</div>
+<p>We believe having this capability will open new avenues for research in meta-learning
+of computational graphs, and will streamline implementation of machine learning methods
+which perform expression manipulation such as genetic programming and Sequence-to-Sequence
+modeling.</p>
+<p>An example of this feature on the previously defined <code class="docutils literal notranslate"><span class="pre">FeedForwardNeuralNetwork</span></code> model
 is the following:</p>
-<div class="highlight-hy notranslate"><div class="highlight"><pre><span></span><span class="o">;</span> <span class="n">Define</span> <span class="n">Model</span>
-<span class="o">(</span><span class="n">setv</span> <span class="n">model</span> <span class="o">(</span><span class="n">NeuralNetwork</span> <span class="mi">10</span> <span class="mi">32</span> <span class="mi">1</span><span class="o">))</span>
-<span class="o">(</span><span class="nb">print</span> <span class="o">(</span><span class="n">hy</span><span class="o">-</span><span class="n">repr</span> <span class="n">model</span><span class="o">))</span>
+<div class="highlight-clojure notranslate"><div class="highlight"><pre><span></span><span class="c1">;- Defines Model and Reverts Model To S-Expression String</span>
+<span class="p">(</span><span class="nf">setv</span> <span class="nv">model</span> <span class="p">(</span><span class="nf">NeuralNetwork</span> <span class="mi">10</span> <span class="mi">32</span> <span class="mi">1</span><span class="p">))</span>
+<span class="p">(</span><span class="nb">print </span><span class="p">(</span><span class="nf">hy-repr</span> <span class="nv">model</span><span class="p">))</span>
 
-<span class="o">;</span> <span class="n">Returns</span>
+<span class="c1">;- Returns</span>
 <span class="s">&quot;(bind (mu [x linear-to-hidden linear-to-output] (linear-to-output (torch.sigmoid (linear-to-hidden x))))</span>
 <span class="s">       :linear-to-hidden (bind (mu [x weights bias] (+ (@ x weights) bias))</span>
 <span class="s">                               :weights (torch.nn.Parameter (torch.empty (, 10 32) :dtype torch.float32))</span>
@@ -420,9 +431,19 @@ is the following:</p>
 <p>MinoTauro contains custom threading macros to help define more complex network
 architectures. Threading macros are common to other function-heavy lisp languages such as Clojure.
 Threading here refers to the practice of passing arguments through expression not concurrency.
-The simplest comes in the form of the thread first macro <cite>-&gt;</cite>, which inserts each expression into the
+The simplest comes in the form of the thread first macro <code class="docutils literal notranslate"><span class="pre">-&gt;</span></code>, which inserts each expression into the
 next expression’s first argument place. The compliment of this macro which inserts the expressions
-into the last argument place is <cite>-&gt;&gt;</cite>.</p>
+into the last argument place is <code class="docutils literal notranslate"><span class="pre">-&gt;&gt;</span></code>.</p>
+<p>The following list lists the threading macros currently implemented
+in MinoTauro. For more detailed use case information, refer to documentation for
+<code class="docutils literal notranslate"><span class="pre">mino.thread</span></code>.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-&gt;</span></code> , <code class="docutils literal notranslate"><span class="pre">-&gt;&gt;</span></code> : Thread First/Last Macros</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">*-&gt;</span></code> , <code class="docutils literal notranslate"><span class="pre">*-&gt;</span></code> : Broadcast Thread First/Last Macros</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">|-&gt;</span></code> , <code class="docutils literal notranslate"><span class="pre">|-&gt;&gt;</span></code> : Inline Thread First/Last Macros</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">=-&gt;</span></code> , <code class="docutils literal notranslate"><span class="pre">=-&gt;</span></code> : Set Thread First/Last Macros</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cond-&gt;</span></code> , <code class="docutils literal notranslate"><span class="pre">cond-&gt;&gt;</span></code> : Conditional Thread First/Last Macros</p></li>
+</ul>
 </div>
 <div class="section" id="spec-clojure-like-specifications-for-pytorch">
 <h3>Spec (Clojure-like Specifications For PyTorch)<a class="headerlink" href="#spec-clojure-like-specifications-for-pytorch" title="Permalink to this headline">¶</a></h3>
@@ -432,98 +453,119 @@ and other features common in Clojure’s <code class="docutils literal notransla
 These tools were added to MintoTauro to help debug computational graphs, constrain model architecture
 to facilitate design collaboration, and to easily generate valid data/models.
 Here is an example of defining a data specification for the previous neural network example:</p>
-<div class="highlight-hy notranslate"><div class="highlight"><pre><span></span><span class="o">;</span> <span class="n">Imports</span>
-<span class="o">(</span><span class="kn">import</span> <span class="nn">torch</span>
-        <span class="o">[</span><span class="n">torch</span><span class="o">.</span><span class="na">nn</span><span class="o">.</span><span class="na">functional</span> <span class="o">:</span><span class="n">as</span> <span class="n">F</span><span class="o">]</span>
-        <span class="o">[</span><span class="n">torch</span><span class="o">.</span><span class="na">nn</span> <span class="o">:</span><span class="n">as</span> <span class="n">nn</span><span class="o">]</span>
-        <span class="o">[</span><span class="n">torch</span><span class="o">.</span><span class="na">optim</span> <span class="o">[</span><span class="n">Adam</span><span class="o">]])</span>
+<div class="highlight-clojure notranslate"><div class="highlight"><pre><span></span><span class="c1">;- Macros</span>
+<span class="p">(</span><span class="nf">require</span> <span class="p">[</span><span class="nv">mino.mu</span> <span class="p">[</span><span class="nv">*</span><span class="p">]]</span>
+         <span class="p">[</span><span class="nv">mino.thread</span> <span class="p">[</span><span class="nv">*</span><span class="p">]]</span>
+         <span class="p">[</span><span class="nv">mino.spec</span> <span class="p">[</span><span class="nv">*</span><span class="p">]]</span>
+         <span class="p">[</span><span class="nv">hy.contrib.walk</span> <span class="p">[</span><span class="nv">let</span><span class="p">]])</span>
 
-<span class="o">;</span> <span class="n">Requires</span>
-<span class="o">(</span><span class="n">require</span> <span class="o">[</span><span class="n">mino</span><span class="o">.</span><span class="na">mu</span> <span class="o">[*]]</span>
-         <span class="o">[</span><span class="n">mino</span><span class="o">.</span><span class="na">thread</span> <span class="o">[*]]</span>
-         <span class="o">[</span><span class="n">mino</span><span class="o">.</span><span class="na">spec</span> <span class="o">[*]]</span>
-         <span class="o">[</span><span class="n">hy</span><span class="o">.</span><span class="na">contrib</span><span class="o">.</span><span class="na">walk</span> <span class="o">[</span><span class="n">let</span><span class="o">]])</span>
+<span class="c1">;- Imports</span>
+<span class="p">(</span><span class="nb">import </span><span class="nv">torch</span>
+        <span class="p">[</span><span class="nv">torch.nn.functional</span> <span class="ss">:as</span> <span class="nv">F</span><span class="p">]</span>
+        <span class="p">[</span><span class="nv">torch.nn</span> <span class="ss">:as</span> <span class="nv">nn</span><span class="p">]</span>
+        <span class="p">[</span><span class="nv">torch.optim</span> <span class="p">[</span><span class="nv">Adam</span><span class="p">]])</span>
 
-<span class="o">;;</span> <span class="n">Defines</span> <span class="n">PyTorch</span> <span class="n">Object</span> <span class="n">Specifications</span>
-<span class="o">(</span><span class="n">spec</span><span class="o">/</span><span class="n">def</span> <span class="o">:</span><span class="n">tensor</span> <span class="o">(</span><span class="n">fn</span> <span class="o">[</span><span class="n">x</span><span class="o">]</span> <span class="o">(</span><span class="n">instance</span><span class="o">?</span> <span class="n">torch</span><span class="o">.</span><span class="na">Tensor</span> <span class="n">x</span><span class="o">))</span>
-          <span class="o">:</span><span class="n">learnable</span> <span class="o">(</span><span class="n">fn</span> <span class="o">[</span><span class="n">x</span><span class="o">]</span> <span class="n">x</span><span class="o">.</span><span class="na">requires_grad</span><span class="o">)</span>
-          <span class="o">:</span><span class="n">rank1</span> <span class="o">(</span><span class="n">fn</span> <span class="o">[</span><span class="n">x</span><span class="o">]</span> <span class="o">(-&gt;</span> <span class="n">x</span> <span class="o">.</span><span class="na">size</span> <span class="n">len</span> <span class="o">(=</span> <span class="mi">1</span><span class="o">)))</span>
-          <span class="o">:</span><span class="n">rank2</span> <span class="o">(</span><span class="n">fn</span> <span class="o">[</span><span class="n">x</span><span class="o">]</span> <span class="o">(-&gt;</span> <span class="n">x</span> <span class="o">.</span><span class="na">size</span> <span class="n">len</span> <span class="o">(=</span> <span class="mi">2</span><span class="o">))))</span>
+<span class="c1">;-- Defines PyTorch Object Specifications</span>
+<span class="p">(</span><span class="nf">spec/def</span> <span class="ss">:tensor</span> <span class="p">(</span><span class="k">fn </span><span class="p">[</span><span class="nv">x</span><span class="p">]</span> <span class="p">(</span><span class="nb">instance? </span><span class="nv">torch.Tensor</span> <span class="nv">x</span><span class="p">))</span>
+          <span class="ss">:learnable</span> <span class="p">(</span><span class="k">fn </span><span class="p">[</span><span class="nv">x</span><span class="p">]</span> <span class="nv">x.requires_grad</span><span class="p">)</span>
+          <span class="ss">:rank1</span> <span class="p">(</span><span class="k">fn </span><span class="p">[</span><span class="nv">x</span><span class="p">]</span> <span class="p">(</span><span class="nb">-&gt; </span><span class="nv">x</span> <span class="nv">.size</span> <span class="nv">len</span> <span class="p">(</span><span class="nb">= </span><span class="mi">1</span><span class="p">)))</span>
+          <span class="ss">:rank2</span> <span class="p">(</span><span class="k">fn </span><span class="p">[</span><span class="nv">x</span><span class="p">]</span> <span class="p">(</span><span class="nb">-&gt; </span><span class="nv">x</span> <span class="nv">.size</span> <span class="nv">len</span> <span class="p">(</span><span class="nb">= </span><span class="mi">2</span><span class="p">))))</span>
 
-<span class="o">;;</span> <span class="n">Linear</span> <span class="n">Operation</span>
-<span class="o">(</span><span class="n">defmu</span> <span class="n">LinearTransformation</span> <span class="o">[</span><span class="n">x</span> <span class="n">weights</span> <span class="n">bias</span><span class="o">]</span>
-  <span class="o">(-&gt;</span> <span class="n">x</span> <span class="o">(@</span> <span class="n">weights</span><span class="o">)</span> <span class="o">(+</span> <span class="n">bias</span><span class="o">)))</span>
+<span class="c1">;-- Linear Operation</span>
+<span class="p">(</span><span class="nf">defmu</span> <span class="nv">LinearTransformation</span> <span class="p">[</span><span class="nv">x</span> <span class="nv">weights</span> <span class="nv">bias</span><span class="p">]</span>
+  <span class="p">(</span><span class="nb">-&gt; </span><span class="nv">x</span> <span class="p">(</span><span class="o">@</span> <span class="nv">weights</span><span class="p">)</span> <span class="p">(</span><span class="nb">+ </span><span class="nv">bias</span><span class="p">)))</span>
 
-<span class="o">;;</span> <span class="n">Define</span> <span class="n">a</span> <span class="n">Learnable</span> <span class="n">LinearTransformation</span> <span class="n">data</span> <span class="nl">specification:</span>
-<span class="o">;;</span> <span class="n">Weights</span> <span class="n">and</span> <span class="n">bias</span> <span class="n">are</span> <span class="n">contrained</span> <span class="n">to</span> <span class="n">ensure</span> <span class="n">model</span> <span class="n">is</span> <span class="n">correctly</span> <span class="n">configured</span><span class="o">.</span>
-<span class="o">;;</span> <span class="n">In</span> <span class="n">this</span> <span class="n">instance</span><span class="o">,</span> <span class="n">weights</span> <span class="n">must</span> <span class="n">conform</span> <span class="n">to</span> <span class="n">Tensors</span> <span class="n">with</span> <span class="n">learnable</span> <span class="n">gradients</span> <span class="k">of</span> <span class="n">ranks</span> <span class="mi">2</span> <span class="n">and</span> <span class="mi">1</span> <span class="n">respectively</span><span class="o">.</span>
-<span class="o">(</span><span class="n">spec</span><span class="o">/</span><span class="n">def</span> <span class="o">:</span><span class="n">LearnableLinear</span> <span class="o">(</span><span class="n">spec</span><span class="o">/</span><span class="n">parameters</span> <span class="n">weights</span> <span class="o">(</span><span class="n">spec</span><span class="o">/</span><span class="n">and</span> <span class="o">:</span><span class="n">tensor</span> <span class="o">:</span><span class="n">learnable</span> <span class="o">:</span><span class="n">rank2</span><span class="o">)</span>
-                                            <span class="n">bias</span>    <span class="o">(</span><span class="n">spec</span><span class="o">/</span><span class="n">and</span> <span class="o">:</span><span class="n">tensor</span> <span class="o">:</span><span class="n">learnable</span> <span class="o">:</span><span class="n">rank1</span><span class="o">)))</span>
+<span class="c1">;-- Defines a Learnable LinearTransformation data specification</span>
+<span class="c1">; Weights and bias are constrained to ensure model is correctly configured.</span>
+<span class="c1">; In this instance, weights must conform to Tensors with learnable gradients of ranks 2 and 1 respectively.</span>
+<span class="p">(</span><span class="nf">spec/def</span> <span class="ss">:LearnableLinear</span> <span class="p">(</span><span class="nf">spec/parameters</span> <span class="nv">weights</span> <span class="p">(</span><span class="nf">spec/and</span> <span class="ss">:tensor</span> <span class="ss">:learnable</span> <span class="ss">:rank2</span><span class="p">)</span>
+                                            <span class="nv">bias</span>    <span class="p">(</span><span class="nf">spec/and</span> <span class="ss">:tensor</span> <span class="ss">:learnable</span> <span class="ss">:rank1</span><span class="p">)))</span>
 
-<span class="o">;;</span> <span class="n">Define</span> <span class="n">a</span> <span class="n">generator</span> <span class="k">for</span> <span class="n">the</span> <span class="n">LearnableLinear</span> <span class="nl">Specification:</span>
-<span class="o">;;</span> <span class="n">Generators</span> <span class="n">are</span> <span class="n">lambda</span> <span class="n">expressions</span> <span class="n">which</span> <span class="n">will</span> <span class="k">return</span> <span class="n">data</span> <span class="n">that</span> <span class="n">conforms</span> <span class="n">to</span> <span class="n">the</span> <span class="n">specification</span><span class="o">.</span>
-<span class="o">(</span><span class="n">spec</span><span class="o">/</span><span class="n">defgen</span> <span class="o">:</span><span class="n">LearnableLinear</span> <span class="o">[</span><span class="n">f</span><span class="o">-</span><span class="n">in</span> <span class="n">f</span><span class="o">-</span><span class="n">out</span><span class="o">]</span>
-  <span class="o">(</span><span class="n">LinearTransformation</span> <span class="o">:</span><span class="n">weights</span> <span class="o">(-&gt;</span> <span class="o">(</span><span class="n">torch</span><span class="o">.</span><span class="na">empty</span> <span class="o">(,</span> <span class="n">f</span><span class="o">-</span><span class="n">in</span> <span class="n">f</span><span class="o">-</span><span class="n">out</span><span class="o">))</span>
-                                     <span class="o">(.</span><span class="n">normal_</span> <span class="o">:</span><span class="n">mean</span> <span class="mi">0</span> <span class="o">:</span><span class="n">std</span> <span class="mf">1.0</span><span class="o">)</span>
-                                     <span class="o">(</span><span class="n">nn</span><span class="o">.</span><span class="na">Parameter</span> <span class="o">:</span><span class="n">requires_grad</span> <span class="n">True</span><span class="o">))</span>
-                        <span class="o">:</span><span class="n">bias</span>    <span class="o">(-&gt;</span> <span class="o">(</span><span class="n">torch</span><span class="o">.</span><span class="na">empty</span> <span class="o">(,</span> <span class="n">f</span><span class="o">-</span><span class="n">out</span><span class="o">))</span>
-                                     <span class="o">(.</span><span class="n">normal_</span> <span class="o">:</span><span class="n">mean</span> <span class="mi">0</span> <span class="o">:</span><span class="n">std</span> <span class="mf">1.0</span><span class="o">)</span>
-                                     <span class="o">(</span><span class="n">nn</span><span class="o">.</span><span class="na">Parameter</span> <span class="o">:</span><span class="n">requires_grad</span> <span class="n">True</span><span class="o">))))</span>
+<span class="c1">;-- Defines a generator for the LearnableLinear Specification</span>
+<span class="c1">; Generators are functions which return data that conforms to the specification.</span>
+<span class="p">(</span><span class="nf">spec/defgen</span> <span class="ss">:LearnableLinear</span> <span class="p">[</span><span class="nv">f-in</span> <span class="nv">f-out</span><span class="p">]</span>
+  <span class="p">(</span><span class="nf">LinearTransformation</span> <span class="ss">:weights</span> <span class="p">(</span><span class="nb">-&gt; </span><span class="p">(</span><span class="nf">torch.empty</span> <span class="p">(</span>, <span class="nv">f-in</span> <span class="nv">f-out</span><span class="p">))</span>
+                                     <span class="p">(</span><span class="nf">.normal_</span> <span class="ss">:mean</span> <span class="mi">0</span> <span class="ss">:std</span> <span class="mf">1.0</span><span class="p">)</span>
+                                     <span class="p">(</span><span class="nf">nn.Parameter</span> <span class="ss">:requires_grad</span> <span class="nv">True</span><span class="p">))</span>
+                        <span class="ss">:bias</span>    <span class="p">(</span><span class="nb">-&gt; </span><span class="p">(</span><span class="nf">torch.empty</span> <span class="p">(</span>, <span class="nv">f-out</span><span class="p">))</span>
+                                     <span class="p">(</span><span class="nf">.normal_</span> <span class="ss">:mean</span> <span class="mi">0</span> <span class="ss">:std</span> <span class="mf">1.0</span><span class="p">)</span>
+                                     <span class="p">(</span><span class="nf">nn.Parameter</span> <span class="ss">:requires_grad</span> <span class="nv">True</span><span class="p">))))</span>
 
-<span class="o">;;</span> <span class="n">Feed</span> <span class="n">Forward</span> <span class="n">operation</span>
-<span class="o">(</span><span class="n">defmu</span> <span class="n">FeedForward</span> <span class="o">[</span><span class="n">x</span> <span class="n">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">hidden</span> <span class="n">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">output</span><span class="o">]</span>
-  <span class="o">(-&gt;</span> <span class="n">x</span>
-      <span class="n">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">hidden</span>
-      <span class="n">torch</span><span class="o">.</span><span class="na">sigmoid</span>
-      <span class="n">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">output</span><span class="o">))</span>
+<span class="c1">;-- Feed Forward Operation</span>
+<span class="p">(</span><span class="nf">defmu</span> <span class="nv">FeedForward</span> <span class="p">[</span><span class="nv">x</span> <span class="nv">linear-to-hidden</span> <span class="nv">linear-to-output</span><span class="p">]</span>
+  <span class="p">(</span><span class="nb">-&gt; </span><span class="nv">x</span>
+      <span class="nv">linear-to-hidden</span>
+      <span class="nv">torch.sigmoid</span>
+      <span class="nv">linear-to-output</span><span class="p">))</span>
 
-<span class="o">;;</span> <span class="n">Define</span> <span class="n">FeedForwardNeuralNetwork</span> <span class="n">Specification</span>
-<span class="o">(</span><span class="n">spec</span><span class="o">/</span><span class="n">def</span> <span class="o">:</span><span class="n">FeedForwardNeuralNetwork</span> <span class="o">(</span><span class="n">spec</span><span class="o">/</span><span class="n">modules</span> <span class="n">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">hidden</span> <span class="o">:</span><span class="n">LearnableLinear</span>
-                                                  <span class="n">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">output</span> <span class="o">:</span><span class="n">LearnableLinear</span><span class="o">))</span>
+<span class="c1">;-- Defines FeedForwardNeuralNetwork Specification</span>
+<span class="p">(</span><span class="nf">spec/def</span> <span class="ss">:FeedForwardNeuralNetwork</span> <span class="p">(</span><span class="nf">spec/modules</span> <span class="nv">linear-to-hidden</span> <span class="ss">:LearnableLinear</span>
+                                                  <span class="nv">linear-to-output</span> <span class="ss">:LearnableLinear</span><span class="p">))</span>
 
-<span class="o">;;</span> <span class="n">Define</span> <span class="n">FeedForwardNeuralNetwork</span> <span class="n">Spec</span> <span class="n">Generator</span>
-<span class="o">(</span><span class="n">spec</span><span class="o">/</span><span class="n">defgen</span> <span class="o">:</span><span class="n">FeedForwardNeuralNetwork</span> <span class="o">[</span><span class="n">nb</span><span class="o">-</span><span class="n">inputs</span> <span class="n">nb</span><span class="o">-</span><span class="n">hidden</span> <span class="n">nb</span><span class="o">-</span><span class="n">outputs</span><span class="o">]</span>
-  <span class="o">(</span><span class="n">FeedForward</span> <span class="o">:</span><span class="n">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">hidden</span> <span class="o">(</span><span class="n">spec</span><span class="o">/</span><span class="n">gen</span> <span class="o">:</span><span class="n">LearnableLinear</span> <span class="n">nb</span><span class="o">-</span><span class="n">inputs</span> <span class="n">nb</span><span class="o">-</span><span class="n">hidden</span><span class="o">)</span>
-                <span class="o">:</span><span class="n">linear</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">output</span> <span class="o">(</span><span class="n">spec</span><span class="o">/</span><span class="n">gen</span> <span class="o">:</span><span class="n">LearnableLinear</span> <span class="n">nb</span><span class="o">-</span><span class="n">hidden</span> <span class="n">nb</span><span class="o">-</span><span class="n">outputs</span><span class="o">)))</span>
+<span class="c1">;-- Defines FeedForwardNeuralNetwork Spec Generator</span>
+<span class="p">(</span><span class="nf">spec/defgen</span> <span class="ss">:FeedForwardNeuralNetwork</span> <span class="p">[</span><span class="nv">nb-inputs</span> <span class="nv">nb-hidden</span> <span class="nv">nb-outputs</span><span class="p">]</span>
+  <span class="p">(</span><span class="nf">FeedForward</span> <span class="ss">:linear-to-hidden</span> <span class="p">(</span><span class="nf">spec/gen</span> <span class="ss">:LearnableLinear</span> <span class="nv">nb-inputs</span> <span class="nv">nb-hidden</span><span class="p">)</span>
+               <span class="ss">:linear-to-output</span> <span class="p">(</span><span class="nf">spec/gen</span> <span class="ss">:LearnableLinear</span> <span class="nv">nb-hidden</span> <span class="nv">nb-outputs</span><span class="p">)))</span>
 
-<span class="o">;;</span> <span class="n">main</span> <span class="o">-</span>
-<span class="o">(</span><span class="n">defmain</span> <span class="o">[&amp;</span><span class="n">rest</span> <span class="n">_</span><span class="o">]</span>
+<span class="c1">;--</span>
+<span class="p">(</span><span class="nf">defmain</span> <span class="p">[</span><span class="o">&amp;</span><span class="nb">rest </span><span class="nv">_</span><span class="p">]</span>
 
-  <span class="o">(</span><span class="nb">print</span> <span class="s">&quot;Loading Model + Data...&quot;</span><span class="o">)</span>
-  <span class="o">(</span><span class="n">let</span> <span class="o">[</span><span class="n">nb</span><span class="o">-</span><span class="n">inputs</span> <span class="mi">10</span> <span class="n">nb</span><span class="o">-</span><span class="n">hidden</span> <span class="mi">32</span> <span class="n">nb</span><span class="o">-</span><span class="n">outputs</span> <span class="mi">1</span><span class="o">]</span>
+  <span class="p">(</span><span class="nb">print </span><span class="s">&quot;Loading Model + Data...&quot;</span><span class="p">)</span>
+  <span class="p">(</span><span class="k">let </span><span class="p">[</span><span class="nv">nb-inputs</span> <span class="mi">10</span> <span class="nv">nb-hidden</span> <span class="mi">32</span> <span class="nv">nb-outputs</span> <span class="mi">1</span><span class="p">]</span>
 
-    <span class="o">;</span> <span class="n">Define</span> <span class="n">Model</span> <span class="o">+</span> <span class="n">Optimizer</span>
-    <span class="o">(</span><span class="n">setv</span> <span class="n">model</span> <span class="o">(</span><span class="n">spec</span><span class="o">/</span><span class="n">gen</span> <span class="o">:</span><span class="n">FeedForwardNeuralNetwork</span> <span class="n">nb</span><span class="o">-</span><span class="n">inputs</span> <span class="n">nb</span><span class="o">-</span><span class="n">hidden</span> <span class="n">nb</span><span class="o">-</span><span class="n">outputs</span><span class="o">)</span>
-          <span class="n">optimizer</span> <span class="o">(</span><span class="n">Adam</span> <span class="o">(.</span><span class="n">parameters</span> <span class="n">model</span><span class="o">)</span> <span class="o">:</span><span class="n">lr</span> <span class="mf">0.001</span> <span class="o">:</span><span class="n">weight_decay</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">5</span><span class="o">))</span>
+    <span class="c1">;- Defines Model + Optimizer</span>
+    <span class="p">(</span><span class="nf">setv</span> <span class="nv">model</span> <span class="p">(</span><span class="nf">spec/gen</span> <span class="ss">:FeedForwardNeuralNetwork</span> <span class="nv">nb-inputs</span> <span class="nv">nb-hidden</span> <span class="nv">nb-outputs</span><span class="p">)</span>
+          <span class="nv">optimizer</span> <span class="p">(</span><span class="nf">Adam</span> <span class="p">(</span><span class="nf">.parameters</span> <span class="nv">model</span><span class="p">)</span> <span class="ss">:lr</span> <span class="mf">0.001</span> <span class="ss">:weight_decay</span> <span class="mi">1</span><span class="nv">e-5</span><span class="p">))</span>
 
-    <span class="o">;</span> <span class="n">Generate</span> <span class="n">Dummy</span> <span class="n">Data</span>
-    <span class="o">(</span><span class="n">let</span> <span class="o">[</span><span class="n">batch</span><span class="o">-</span><span class="nb">size</span> <span class="mi">100</span><span class="o">]</span>
-      <span class="o">(</span><span class="n">setv</span> <span class="n">x</span> <span class="o">(-&gt;</span> <span class="o">(</span><span class="n">torch</span><span class="o">.</span><span class="na">empty</span> <span class="o">(,</span> <span class="n">batch</span><span class="o">-</span><span class="nb">size</span> <span class="n">nb</span><span class="o">-</span><span class="n">inputs</span><span class="o">))</span>
-                  <span class="o">(.</span><span class="n">normal_</span> <span class="o">:</span><span class="n">mean</span> <span class="mi">0</span> <span class="o">:</span><span class="n">std</span> <span class="mf">1.0</span><span class="o">))</span>
-            <span class="n">y</span> <span class="o">(</span><span class="n">torch</span><span class="o">.</span><span class="na">ones</span> <span class="o">(,</span> <span class="n">batch</span><span class="o">-</span><span class="nb">size</span> <span class="n">nb</span><span class="o">-</span><span class="n">outputs</span><span class="o">)))))</span>
+    <span class="c1">;- Generates Dummy Data</span>
+    <span class="p">(</span><span class="k">let </span><span class="p">[</span><span class="nv">batch-size</span> <span class="mi">100</span><span class="p">]</span>
+      <span class="p">(</span><span class="nf">setv</span> <span class="nv">x</span> <span class="p">(</span><span class="nb">-&gt; </span><span class="p">(</span><span class="nf">torch.empty</span> <span class="p">(</span>, <span class="nv">batch-size</span> <span class="nv">nb-inputs</span><span class="p">))</span>
+                  <span class="p">(</span><span class="nf">.normal_</span> <span class="ss">:mean</span> <span class="mi">0</span> <span class="ss">:std</span> <span class="mf">1.0</span><span class="p">))</span>
+            <span class="nv">y</span> <span class="p">(</span><span class="nf">torch.ones</span> <span class="p">(</span>, <span class="nv">batch-size</span> <span class="nv">nb-outputs</span><span class="p">)))))</span>
 
-  <span class="o">;</span> <span class="n">Train</span>
-  <span class="o">(</span><span class="n">let</span> <span class="o">[</span><span class="n">epochs</span> <span class="mi">100</span><span class="o">]</span>
-    <span class="o">(</span><span class="nb">print</span> <span class="s">&quot;Training...&quot;</span><span class="o">)</span>
-    <span class="o">(</span><span class="k">for</span> <span class="o">[</span><span class="n">epoch</span> <span class="o">(</span><span class="n">range</span> <span class="n">epochs</span><span class="o">)]</span>
+  <span class="c1">;- Train</span>
+  <span class="p">(</span><span class="k">let </span><span class="p">[</span><span class="nv">epochs</span> <span class="mi">100</span><span class="p">]</span>
+    <span class="p">(</span><span class="nb">print </span><span class="s">&quot;Training...&quot;</span><span class="p">)</span>
+    <span class="p">(</span><span class="nb">for </span><span class="p">[</span><span class="nv">epoch</span> <span class="p">(</span><span class="nb">range </span><span class="nv">epochs</span><span class="p">)]</span>
 
-      <span class="o">;</span> <span class="n">Forward</span>
-      <span class="o">(</span><span class="n">setv</span> <span class="n">y</span><span class="o">-</span><span class="n">pred</span> <span class="o">(</span><span class="n">model</span> <span class="n">x</span><span class="o">))</span>
-      <span class="o">(</span><span class="n">setv</span> <span class="n">loss</span> <span class="o">(</span><span class="n">F</span><span class="o">.</span><span class="na">binary_cross_entropy_with_logits</span> <span class="n">y</span><span class="o">-</span><span class="n">pred</span> <span class="n">y</span><span class="o">))</span>
-      <span class="o">(</span><span class="nb">print</span> <span class="o">(.</span><span class="n">format</span> <span class="s">&quot;Epoch: {epoch} Loss: {loss}&quot;</span> <span class="o">:</span><span class="n">epoch</span> <span class="n">epoch</span> <span class="o">:</span><span class="n">loss</span> <span class="n">loss</span><span class="o">))</span>
+      <span class="c1">;- Forward</span>
+      <span class="p">(</span><span class="nf">setv</span> <span class="nv">y-pred</span> <span class="p">(</span><span class="nf">model</span> <span class="nv">x</span><span class="p">))</span>
+      <span class="p">(</span><span class="nf">setv</span> <span class="nv">loss</span> <span class="p">(</span><span class="nf">F.binary_cross_entropy_with_logits</span> <span class="nv">y-pred</span> <span class="nv">y</span><span class="p">))</span>
+      <span class="p">(</span><span class="nb">print </span><span class="p">(</span><span class="nf">.format</span> <span class="s">&quot;Epoch: {epoch} Loss: {loss}&quot;</span> <span class="ss">:epoch</span> <span class="nv">epoch</span> <span class="ss">:loss</span> <span class="nv">loss</span><span class="p">))</span>
 
-      <span class="o">;</span> <span class="n">Backward</span>
-      <span class="o">(.</span><span class="n">zero_grad</span> <span class="n">optimizer</span><span class="o">)</span>
-      <span class="o">(.</span><span class="n">backward</span> <span class="n">loss</span><span class="o">)</span>
-      <span class="o">(.</span><span class="n">step</span> <span class="n">optimizer</span><span class="o">))))</span>
+      <span class="c1">;- Backward</span>
+      <span class="p">(</span><span class="nf">.zero_grad</span> <span class="nv">optimizer</span><span class="p">)</span>
+      <span class="p">(</span><span class="nf">.backward</span> <span class="nv">loss</span><span class="p">)</span>
+      <span class="p">(</span><span class="nf">.step</span> <span class="nv">optimizer</span><span class="p">))))</span>
 </pre></div>
 </div>
 <p>The neural network example uses <code class="docutils literal notranslate"><span class="pre">mino.spec</span></code> to
 define valid configurations of the <code class="docutils literal notranslate"><span class="pre">LearnableLinear</span></code> and <code class="docutils literal notranslate"><span class="pre">FeedForwardNeuralNetwork</span></code> modules.
-These <code class="docutils literal notranslate"><span class="pre">mino.spec</span></code> definitions makes it simple and concise to test that modules
+These <code class="docutils literal notranslate"><span class="pre">mino.spec</span></code> definitions makes it simple to test that modules
 have valid components. If a generator is defined for a <code class="docutils literal notranslate"><span class="pre">mino.spec</span></code>, then
 the generated data will be tested against its specification and fail when
 the data does not conform.</p>
+</div>
+</div>
+<div class="section" id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<p>You can install the latest stable version of MinoTauro (0.1.0) by running:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pip3 install git+https://github.com/rz4/MinoTauro.git
+</pre></div>
+</div>
+<div class="section" id="jupyter-notebook-running-minotauro">
+<h3>Jupyter Notebook Running MinoTauro<a class="headerlink" href="#jupyter-notebook-running-minotauro" title="Permalink to this headline">¶</a></h3>
+<p>If you prefer to develop models in a Jupyter Notebook, you can
+try out <strong>Calysto</strong>, a Hy Kernel for Jupyter. The MinoTauro GitHub
+Repo contains a up to date version for Hy 0.19.0 and information
+on how to install it. Click <a class="reference external" href="https://github.com/rz4/MinoTauro#jupyter-notebook-setup">here</a> for more information.</p>
+</div>
+<div class="section" id="tutorials-api">
+<h3>Tutorials &amp; API<a class="headerlink" href="#tutorials-api" title="Permalink to this headline">¶</a></h3>
+<p>We are starting to compile some tutorials which show how to use MinoTauro
+to build PyTorch models with ease. For more in depth explanations of
+each macro provided in MinoTauro, refer to the <code class="docutils literal notranslate"><span class="pre">mino.mu</span></code>, <code class="docutils literal notranslate"><span class="pre">mino.thread</span></code>
+and <code class="docutils literal notranslate"><span class="pre">mino.spec</span></code> APIs respectively.</p>
 <div class="toctree-wrapper compound">
 </div>
 </div>
@@ -538,10 +580,10 @@ the data does not conform.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tutorials/index.html" class="btn btn-neutral float-right" title="Tutorials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tutorials/index.html" class="btn btn-neutral float-right" title="tutorials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="index.html" class="btn btn-neutral float-left" title="MinoTauro API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="index.html" class="btn btn-neutral float-left" title="MinoTauro (0.1.0) API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

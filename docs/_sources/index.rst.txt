@@ -1,4 +1,4 @@
-MinoTauro API
+MinoTauro (0.1.0) API
 =====================================
 
 :Source: https://github.com/rz4/MinoTauro
@@ -9,11 +9,11 @@ for experiments in deep learning meta-programming.
 
 To install the latest stable release of MinoTauro, just use the command
 ``pip3 install git+https://github.com/rz4/MinoTauro``. Then you can start using
-all of MinoTauro's features by importing it's macros with:
+all of MinoTauro's features by importing the macros with:
 
-.. code-block :: hy
+.. code-block :: clojure
 
-  ; Required Macros
+  ;- Import MinoTauro Macros
   (require [mino.mu [*]]
            [mino.thread [*]]
            [mino.spec [*]])

@@ -7,12 +7,12 @@
 
 PyTorch Meta-Programming Using the Lisp Dialect Hy
 
-![Current Version](https://img.shields.io/badge/version-0.0.9-yellow.svg)
+![Current Version](https://img.shields.io/badge/version-0.1.0-green.svg)
 
 Lead Maintainer: [Rafael Zamora-Resendiz](https://github.com/rz4)
 
-**MinoTauro** is a Hy (0.18.0) library running Python (3.8) and PyTorch (1.3)
-for use in rapid low-level development of differential programs as well as
+**MinoTauro** is a Hy (0.19.0) library running Python (3.8) and PyTorch (1.3)
+for use in rapid bottom-up development of differential programs as well as
 for experiments in deep learning meta-programming.
 
 - MinoTauro lets you implement lambda-esk 'anonymous PyTorch Modules' referred to as 'mu expressions'.
@@ -47,13 +47,12 @@ $ pip3 install git+https://github.com/rz4/MinoTauro
 
 ## Jupyter Notebook Setup
 
-Ok, so this is already awesome. Let's make it even better by running MinoTauro in
-a Jupyter notebook!
+Let's make it even better by running MinoTauro in a Jupyter notebook.
 
 ### Calysto - Hy IPython Kernel
 
-I've taken the current version of [calysto_hy](https://github.com/Calysto/calysto_hy)
-and made some changes to be able to run it with the latest version of Hy (0.18.0). Even though
+We've taken the current version of [calysto_hy](https://github.com/Calysto/calysto_hy)
+and made some changes to be able to run it with the latest version of Hy (0.19.0). Even though
 this version runs the kernel without major errors, the autocomplete feature is still not working
 and I will be looking into fixing this in the future.
 
@@ -68,7 +67,7 @@ $ cd jupyter
 
 ### ParInfer Notebook Extension
 
-Since this project is intended to showcase the power of Lisp, I found an notebook extension
+Since this project is intended to showcase the power of Lisp, we found an notebook extension
 for [ParInfer](https://github.com/shaunlebron/parinfer) in this great Clojure Jupyter kernel
 [repository](https://github.com/clojupyter/lein-jupyter). Many people stay away
 from Lisps due to the abundance of parenthesis, but ParaInfer takes away the need to

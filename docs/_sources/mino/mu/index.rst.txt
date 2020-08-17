@@ -1,5 +1,205 @@
 mino.mu
 =====================================
 
+The source code for ``mino.mu`` can be found here: github_link_
+
+.. _github_link: https://github.com/rz4/MinoTauro/blob/master/mino/mu.hy
+
+---------
+
+``defmu``
+---------
+
+.. rubric:: PyTorch Module Mu-Expression Definition Macro
+
+.. rubric:: Form:
+
+.. function:: (defmu module-name required-components &rest forward-procedure)
+   :module: mino.mu
+
+.. rubric:: Args:
+
+:module-name (``HySymbol``):
+  name of the new PyTorch Module class.
+
+:required-components (``HyList(HySymbol)``):
+  list of parameters/submodules required for the forward procedure.
+
+:forward-procedure (``&rest HyExpression``):
+  operations run during forward propagation.
+
+Returns:
+  :(``HyExpression``):
+    Expanded PyTorch Module class definition code.
+
+Macroexpands to a new namespaced PyTorch Module class definition.
+Macro's syntax mirrors the definition of namespaced functions (``defn``),
+allowing PyTorch Modules to be expressed with concise function syntax.
+
+All inputs to the forward call are treated as required components
+and raise a python ``ValueError`` if a component is not passed during the forward call.
+When creating a new instance a mu, default values for components
+can be set through their corresponding keyword arguments. If set, the value is
+bound to that component argument and will be used during forward propagation
+unless another value is supplied during the forward call. Components binding
+can also be done at any time after creation through the ``bind`` macro.
+
+The modules' ``extra_repr`` has been overloaded to show components,
+forward-procedure expression, and sub-modules/parameters.
+
+A hy-repr is registered which when called on a module, returns Hy code of the
+module as as mu expressions of the full computational graph with substitutions of
+all nested components into the root module.
+
+Like function definitions, a ``docstring`` can be assigned for the module class
+with the first form of the forward procedure as a string.
+
+.. rubric:: Example:
+
+.. code-block :: clojure
+
+  ;- Import Macro
+  (require [mino.mu [defmu]])
+
+  ;- Import Torch
+  (import torch [torch.nn :as nn])
+
+  ;-- Define Module Thru Mu Expression
+  (defmu MyModel [x hidden-layer output-layer]
+    (output-layer (hidden-layer x)))
+
+  ;- Create New Instance of MyModel
+  (setv model (MyModel :hidden-layer (nn.Linear 10 10)
+                       :output-layer (nn.Linear 10 1)))
+
+  ;- Display Model
+  (print model)
+
+  ; Returns:
+
+  """
+  MyModel(
+    At: 0x12beafb50
+    C: [x hidden-layer output-layer]
+    λ: (output-layer (hidden-layer x))
+
+
+    (hidden_layer): Linear(in_features=10, out_features=10, bias=True)
+    (output_layer): Linear(in_features=10, out_features=1, bias=True)
+  )
+  """
+
+  ;- Revert Model
+  (print (hy-repr model))
+
+  ; Returns:
+  """
+  (bind (mu [x hidden-layer output-layer] (output-layer (hidden-layer x)))
+        :hidden-layer (torch.nn.modules.linear.Linear :in_features 10 :out_features 10 :bias True))
+        :output-layer (torch.nn.modules.linear.Linear :in_features 10 :out_features 1 :bias True)))
+  """
+
+  ;- Forward
+  (print (model (torch.zeros (, 15 10))))
+
+  ; Returns:
+  """
+  tensor([[-0.2704],
+        [-0.2704],
+        [-0.2704],
+        [-0.2704],
+        [-0.2704],
+        [-0.2704],
+        [-0.2704],
+        [-0.2704],
+        [-0.2704],
+        [-0.2704],
+        [-0.2704],
+        [-0.2704],
+        [-0.2704],
+        [-0.2704],
+        [-0.2704]], grad_fn=<AddmmBackward>)
+  """
+
+--------
+
+``mu``
+---------
+
+.. rubric:: Anonymous PyTorch Module Mu-Expression Macro
+
+.. rubric:: Form:
+
+.. function:: (mu required-components &rest forward-procedure)
+   :module: mino.mu
+
+.. rubric:: Args:
+
+:required-components (``HyList(HySymbol)``):
+  the list of parameters/submodules required in the forward procedure.
+
+:forward-procedure (``&rest HyExpression``):
+  the operations run during forward propagation.
+
+Returns:
+  (``HyExpression``): Expanded PyTorch Module class instance code.
+
+Macroexpands to an anonymous PyTorch Module class instance.
+Macro syntax mirrors the definition of anonymous functions (``fn``),
+allowing PyTorch Modules to be expressed with concise function syntax.
+
+``mu`` is used to create a single instance of a PyTorch Module. For more
+information on the mechanics of the mu objects, refer to ``defmu``
+documentation.
+
+.. rubric:: Example:
+
+.. code-block :: clojure
+
+  ;- Import Macro
+  (require [mino.mu [mu]])
+
+  ;- Import Torch
+  (import torch [torch.nn :as nn])
+
+  ;-- Define Module Thru Mu Expression
+  (setv model (mu [x hidden-layer output-layer] (output-layer (hidden-layer x))))
+
+  ;- Display Model
+  (print model)
+
+  ; Returns:
+  """
+  μ(
+    At: 0x12bbd69d0
+    C: [x hidden-layer output-layer]
+    λ: (output-layer (hidden-layer x))
+
+  )
+  """
+
+  ;- Forward
+  (print (model (torch.zeros (, 15 10)) (nn.Linear 10 10) (nn.Linear 10 1)))
+
+  ; Returns:
+  """
+  tensor([[0.3004],
+          [0.3004],
+          [0.3004],
+          [0.3004],
+          [0.3004],
+          [0.3004],
+          [0.3004],
+          [0.3004],
+          [0.3004],
+          [0.3004],
+          [0.3004],
+          [0.3004],
+          [0.3004],
+          [0.3004],
+          [0.3004]], grad_fn=<AddmmBackward>)
+  """
+
+
 .. toctree::
    :maxdepth: 2

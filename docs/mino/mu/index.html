@@ -87,10 +87,14 @@
             
             
               <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials/index.html">tutorials</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">mino</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">mino.mu</a><ul class="simple">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">mino.mu</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#defmu"><code class="docutils literal notranslate"><span class="pre">defmu</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mu"><code class="docutils literal notranslate"><span class="pre">mu</span></code></a><ul class="simple">
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../thread/index.html">mino.thread</a></li>
@@ -166,7 +170,197 @@
             
   <div class="section" id="mino-mu">
 <h1>mino.mu<a class="headerlink" href="#mino-mu" title="Permalink to this headline">¶</a></h1>
+<p>The source code for <code class="docutils literal notranslate"><span class="pre">mino.mu</span></code> can be found here: <a class="reference external" href="https://github.com/rz4/MinoTauro/blob/master/mino/mu.hy">github_link</a></p>
+<hr class="docutils" />
+<div class="section" id="defmu">
+<h2><code class="docutils literal notranslate"><span class="pre">defmu</span></code><a class="headerlink" href="#defmu" title="Permalink to this headline">¶</a></h2>
+<p class="rubric">PyTorch Module Mu-Expression Definition Macro</p>
+<p class="rubric">Form:</p>
+<dl class="py function">
+<dt>
+<code class="sig-name descname">(defmu module-name required-components &amp;rest forward-procedure)</code></dt>
+<dd></dd></dl>
+
+<p class="rubric">Args:</p>
+<dl class="field-list simple">
+<dt class="field-odd">module-name (<code class="docutils literal notranslate"><span class="pre">HySymbol</span></code>)</dt>
+<dd class="field-odd"><p>name of the new PyTorch Module class.</p>
+</dd>
+<dt class="field-even">required-components (<code class="docutils literal notranslate"><span class="pre">HyList(HySymbol)</span></code>)</dt>
+<dd class="field-even"><p>list of parameters/submodules required for the forward procedure.</p>
+</dd>
+<dt class="field-odd">forward-procedure (<code class="docutils literal notranslate"><span class="pre">&amp;rest</span> <span class="pre">HyExpression</span></code>)</dt>
+<dd class="field-odd"><p>operations run during forward propagation.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Returns:</dt><dd><dl class="field-list simple">
+<dt class="field-odd">(<code class="docutils literal notranslate"><span class="pre">HyExpression</span></code>)</dt>
+<dd class="field-odd"><p>Expanded PyTorch Module class definition code.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>Macroexpands to a new namespaced PyTorch Module class definition.
+Macro’s syntax mirrors the definition of namespaced functions (<code class="docutils literal notranslate"><span class="pre">defn</span></code>),
+allowing PyTorch Modules to be expressed with concise function syntax.</p>
+<p>All inputs to the forward call are treated as required components
+and raise a python <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if a component is not passed during the forward call.
+When creating a new instance a mu, default values for components
+can be set through their corresponding keyword arguments. If set, the value is
+bound to that component argument and will be used during forward propagation
+unless another value is supplied during the forward call. Components binding
+can also be done at any time after creation through the <code class="docutils literal notranslate"><span class="pre">bind</span></code> macro.</p>
+<p>The modules’ <code class="docutils literal notranslate"><span class="pre">extra_repr</span></code> has been overloaded to show components,
+forward-procedure expression, and sub-modules/parameters.</p>
+<p>A hy-repr is registered which when called on a module, returns Hy code of the
+module as as mu expressions of the full computational graph with substitutions of
+all nested components into the root module.</p>
+<p>Like function definitions, a <code class="docutils literal notranslate"><span class="pre">docstring</span></code> can be assigned for the module class
+with the first form of the forward procedure as a string.</p>
+<p class="rubric">Example:</p>
+<div class="highlight-clojure notranslate"><div class="highlight"><pre><span></span><span class="c1">;- Import Macro</span>
+<span class="p">(</span><span class="nf">require</span> <span class="p">[</span><span class="nv">mino.mu</span> <span class="p">[</span><span class="nv">defmu</span><span class="p">]])</span>
+
+<span class="c1">;- Import Torch</span>
+<span class="p">(</span><span class="nb">import </span><span class="nv">torch</span> <span class="p">[</span><span class="nv">torch.nn</span> <span class="ss">:as</span> <span class="nv">nn</span><span class="p">])</span>
+
+<span class="c1">;-- Define Module Thru Mu Expression</span>
+<span class="p">(</span><span class="nf">defmu</span> <span class="nv">MyModel</span> <span class="p">[</span><span class="nv">x</span> <span class="nv">hidden-layer</span> <span class="nv">output-layer</span><span class="p">]</span>
+  <span class="p">(</span><span class="nf">output-layer</span> <span class="p">(</span><span class="nf">hidden-layer</span> <span class="nv">x</span><span class="p">)))</span>
+
+<span class="c1">;- Create New Instance of MyModel</span>
+<span class="p">(</span><span class="nf">setv</span> <span class="nv">model</span> <span class="p">(</span><span class="nf">MyModel</span> <span class="ss">:hidden-layer</span> <span class="p">(</span><span class="nf">nn.Linear</span> <span class="mi">10</span> <span class="mi">10</span><span class="p">)</span>
+                     <span class="ss">:output-layer</span> <span class="p">(</span><span class="nf">nn.Linear</span> <span class="mi">10</span> <span class="mi">1</span><span class="p">)))</span>
+
+<span class="c1">;- Display Model</span>
+<span class="p">(</span><span class="nb">print </span><span class="nv">model</span><span class="p">)</span>
+
+<span class="c1">; Returns:</span>
+
+<span class="s">&quot;&quot;&quot;</span>
+<span class="s">MyModel(</span>
+<span class="s">  At: 0x12beafb50</span>
+<span class="s">  C: [x hidden-layer output-layer]</span>
+<span class="s">  λ: (output-layer (hidden-layer x))</span>
+
+
+<span class="s">  (hidden_layer): Linear(in_features=10, out_features=10, bias=True)</span>
+<span class="s">  (output_layer): Linear(in_features=10, out_features=1, bias=True)</span>
+<span class="s">)</span>
+<span class="s">&quot;&quot;&quot;</span>
+
+<span class="c1">;- Revert Model</span>
+<span class="p">(</span><span class="nb">print </span><span class="p">(</span><span class="nf">hy-repr</span> <span class="nv">model</span><span class="p">))</span>
+
+<span class="c1">; Returns:</span>
+<span class="s">&quot;&quot;&quot;</span>
+<span class="s">(bind (mu [x hidden-layer output-layer] (output-layer (hidden-layer x)))</span>
+<span class="s">      :hidden-layer (torch.nn.modules.linear.Linear :in_features 10 :out_features 10 :bias True))</span>
+<span class="s">      :output-layer (torch.nn.modules.linear.Linear :in_features 10 :out_features 1 :bias True)))</span>
+<span class="s">&quot;&quot;&quot;</span>
+
+<span class="c1">;- Forward</span>
+<span class="p">(</span><span class="nb">print </span><span class="p">(</span><span class="nf">model</span> <span class="p">(</span><span class="nf">torch.zeros</span> <span class="p">(</span>, <span class="mi">15</span> <span class="mi">10</span><span class="p">))))</span>
+
+<span class="c1">; Returns:</span>
+<span class="s">&quot;&quot;&quot;</span>
+<span class="s">tensor([[-0.2704],</span>
+<span class="s">      [-0.2704],</span>
+<span class="s">      [-0.2704],</span>
+<span class="s">      [-0.2704],</span>
+<span class="s">      [-0.2704],</span>
+<span class="s">      [-0.2704],</span>
+<span class="s">      [-0.2704],</span>
+<span class="s">      [-0.2704],</span>
+<span class="s">      [-0.2704],</span>
+<span class="s">      [-0.2704],</span>
+<span class="s">      [-0.2704],</span>
+<span class="s">      [-0.2704],</span>
+<span class="s">      [-0.2704],</span>
+<span class="s">      [-0.2704],</span>
+<span class="s">      [-0.2704]], grad_fn=&lt;AddmmBackward&gt;)</span>
+<span class="s">&quot;&quot;&quot;</span>
+</pre></div>
+</div>
+</div>
+<hr class="docutils" />
+<div class="section" id="mu">
+<h2><code class="docutils literal notranslate"><span class="pre">mu</span></code><a class="headerlink" href="#mu" title="Permalink to this headline">¶</a></h2>
+<p class="rubric">Anonymous PyTorch Module Mu-Expression Macro</p>
+<p class="rubric">Form:</p>
+<dl class="py function">
+<dt>
+<code class="sig-name descname">(mu required-components &amp;rest forward-procedure)</code></dt>
+<dd></dd></dl>
+
+<p class="rubric">Args:</p>
+<dl class="field-list simple">
+<dt class="field-odd">required-components (<code class="docutils literal notranslate"><span class="pre">HyList(HySymbol)</span></code>)</dt>
+<dd class="field-odd"><p>the list of parameters/submodules required in the forward procedure.</p>
+</dd>
+<dt class="field-even">forward-procedure (<code class="docutils literal notranslate"><span class="pre">&amp;rest</span> <span class="pre">HyExpression</span></code>)</dt>
+<dd class="field-even"><p>the operations run during forward propagation.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>(<code class="docutils literal notranslate"><span class="pre">HyExpression</span></code>): Expanded PyTorch Module class instance code.</p>
+</dd>
+</dl>
+<p>Macroexpands to an anonymous PyTorch Module class instance.
+Macro syntax mirrors the definition of anonymous functions (<code class="docutils literal notranslate"><span class="pre">fn</span></code>),
+allowing PyTorch Modules to be expressed with concise function syntax.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mu</span></code> is used to create a single instance of a PyTorch Module. For more
+information on the mechanics of the mu objects, refer to <code class="docutils literal notranslate"><span class="pre">defmu</span></code>
+documentation.</p>
+<p class="rubric">Example:</p>
+<div class="highlight-clojure notranslate"><div class="highlight"><pre><span></span><span class="c1">;- Import Macro</span>
+<span class="p">(</span><span class="nf">require</span> <span class="p">[</span><span class="nv">mino.mu</span> <span class="p">[</span><span class="nv">mu</span><span class="p">]])</span>
+
+<span class="c1">;- Import Torch</span>
+<span class="p">(</span><span class="nb">import </span><span class="nv">torch</span> <span class="p">[</span><span class="nv">torch.nn</span> <span class="ss">:as</span> <span class="nv">nn</span><span class="p">])</span>
+
+<span class="c1">;-- Define Module Thru Mu Expression</span>
+<span class="p">(</span><span class="nf">setv</span> <span class="nv">model</span> <span class="p">(</span><span class="nf">mu</span> <span class="p">[</span><span class="nv">x</span> <span class="nv">hidden-layer</span> <span class="nv">output-layer</span><span class="p">]</span> <span class="p">(</span><span class="nf">output-layer</span> <span class="p">(</span><span class="nf">hidden-layer</span> <span class="nv">x</span><span class="p">))))</span>
+
+<span class="c1">;- Display Model</span>
+<span class="p">(</span><span class="nb">print </span><span class="nv">model</span><span class="p">)</span>
+
+<span class="c1">; Returns:</span>
+<span class="s">&quot;&quot;&quot;</span>
+<span class="s">μ(</span>
+<span class="s">  At: 0x12bbd69d0</span>
+<span class="s">  C: [x hidden-layer output-layer]</span>
+<span class="s">  λ: (output-layer (hidden-layer x))</span>
+
+<span class="s">)</span>
+<span class="s">&quot;&quot;&quot;</span>
+
+<span class="c1">;- Forward</span>
+<span class="p">(</span><span class="nb">print </span><span class="p">(</span><span class="nf">model</span> <span class="p">(</span><span class="nf">torch.zeros</span> <span class="p">(</span>, <span class="mi">15</span> <span class="mi">10</span><span class="p">))</span> <span class="p">(</span><span class="nf">nn.Linear</span> <span class="mi">10</span> <span class="mi">10</span><span class="p">)</span> <span class="p">(</span><span class="nf">nn.Linear</span> <span class="mi">10</span> <span class="mi">1</span><span class="p">)))</span>
+
+<span class="c1">; Returns:</span>
+<span class="s">&quot;&quot;&quot;</span>
+<span class="s">tensor([[0.3004],</span>
+<span class="s">        [0.3004],</span>
+<span class="s">        [0.3004],</span>
+<span class="s">        [0.3004],</span>
+<span class="s">        [0.3004],</span>
+<span class="s">        [0.3004],</span>
+<span class="s">        [0.3004],</span>
+<span class="s">        [0.3004],</span>
+<span class="s">        [0.3004],</span>
+<span class="s">        [0.3004],</span>
+<span class="s">        [0.3004],</span>
+<span class="s">        [0.3004],</span>
+<span class="s">        [0.3004],</span>
+<span class="s">        [0.3004],</span>
+<span class="s">        [0.3004]], grad_fn=&lt;AddmmBackward&gt;)</span>
+<span class="s">&quot;&quot;&quot;</span>
+</pre></div>
+</div>
 <div class="toctree-wrapper compound">
+</div>
 </div>
 </div>
 

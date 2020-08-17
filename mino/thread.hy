@@ -9,12 +9,25 @@ To use macros, import using:
 (require [mino.thread [*]])
 """
 
-; Imports
+;- Imports
 (import hy)
 
+;--
 (defmacro -> [head &rest forms]
   """Overloaded thread-first macro:
+
   Macroexpands all forms including head prior to threading.
+  Forms will be threaded into the first argument slot.
+
+  Args:
+
+  head (HySymbol or HyExpression): starting element for threading
+  forms (&rest HySymbols or HyExpressions): subsequent elements in thread
+
+  Returns:
+
+  ret (HyExpression): Expanded code with threaded expressions
+
   """
   (setv ret (macroexpand head))
   (for [form forms]
@@ -25,7 +38,18 @@ To use macros, import using:
 
 (defmacro ->> [head &rest forms]
   """Overloaded thread-last macro:
+
   Macroexpands all forms including head prior to threading.
+  Forms will be threaded into the last argument slot.
+
+  Args:
+
+  head (HySymbol or HyExpression): starting element for threading
+  forms (&rest HySymbols or HyExpressions): subsequent elements in thread
+
+  Returns:
+
+  ret (HyExpression): Expanded code with threaded expressions
   """
   (setv ret (macroexpand head))
   (for [form forms]
@@ -36,17 +60,30 @@ To use macros, import using:
 
 (defmacro *-> [head &rest forms]
   """ Broadcast-thread first macro:
+
   Variation of the thread first macro which threads listed forms as the first
-  n arguments in the next form.
-  Example: (*-> [x y] +)
+  n arguments in the next form. When a form precedes a list of forms broadcast the preceding form to each form in the list.
 
-  Returns: (+ x y)
+  Args:
 
-  When a form precedes a list of forms broadcast the preceding form to each
-  form in the list.
-  Example: (*-> x [inc decr])
+  head (HySymbol or HyExpression): starting element for threading
+  forms (&rest HySymbols or HyExpressions): subsequent elements in thread
 
-  Returns: [(inc x) (decr x)]
+  Returns:
+
+  ret (HyExpression): Expanded code with threaded expressions
+
+  Example:
+
+  (*-> [x y] +)
+
+  ; Returns
+  (+ x y)
+
+  (*-> x [inc decr])
+
+  ; Returns
+  [(inc x) (decr x)]
   """
   (setv ret (macroexpand head))
   (for [form forms]
@@ -69,8 +106,18 @@ To use macros, import using:
 
 (defmacro *->> [head &rest forms]
   """Broadcast-thread last macro:
+
   Variation of the thread last macro which threads listed forms as
   the last n arguments in the next form.
+
+  Args:
+
+  head (HySymbol or HyExpression): starting element for threading
+  forms (&rest HySymbols or HyExpressions): subsequent elements in thread
+
+  Returns:
+
+  ret (HyExpression): Expanded code with threaded expressions
   """
   (setv ret (macroexpand head))
   (for [form forms]
@@ -93,6 +140,7 @@ To use macros, import using:
 
 (defmacro |-> [head &rest forms]
   """Inline-thread first macro:
+
   Variation of the thread first macro which threads listed forms in parallel.
   Example: (|-> [x y] [inc decr])
 
@@ -132,6 +180,7 @@ To use macros, import using:
 
 (defmacro |->> [head &rest forms]
   """Inline-thread last macro:
+
   Variation of the thread last macro which threads listed forms in parallel.
   """
   (setv ret (macroexpand head))
@@ -163,6 +212,7 @@ To use macros, import using:
 
 (defmacro =-> [head &rest forms]
   """Setv-thread first macro:
+
   Variation of the thread first macro which stores the result at each form thread.
   Used when its more effcient to pass pointer of the evaluated form to next form operation instead
   of unevaluated form. Gensym used for variable name to prvent namespace collisions.
@@ -184,6 +234,7 @@ To use macros, import using:
 
 (defmacro =->> [&rest forms]
   """Setv-thread last macro:
+
   Variation of the thread last macro which stores the result at each form thread.
   """
   (setv ret '(do))
@@ -200,6 +251,7 @@ To use macros, import using:
 
 (defmacro cond-> [head &rest args]
   """Conditional-thread first macro:
+
   Variation of the thread first macro which operates as cond-> in Clojure.
   Example: (cond-> x True incr (even? 2) incr (odd? 2) decr)
 
@@ -227,6 +279,7 @@ To use macros, import using:
 
 (defmacro cond->> [head &rest args]
   """Conditional-thread last macro:
+
   Variation of the thread last macro which operates as cond-> in Clojure.
   """
   (assert (even? (len args)) "cond->: Wrong number of arguments.")

@@ -1,4 +1,4 @@
-Overview
+overview
 =====================================
 
 Motivation
@@ -21,42 +21,41 @@ reproducibility of models more difficult.
 In order to better understand DL models and allow for quick iterative design
 over novel or esoteric architectures, programmers require access to an
 environment which allows low-level definition of computational graphs and
-provides methods to quickly access network components for debugging and analysis,
+provides methods to quickly access network components for refactoring, debugging and analysis,
 while still providing gpu-acceleration. The added expressibility of Lisp in
 combination with PyTorch's functional API allows for this type of programming
-paradigm, and provides DL researchers an extendable framework which cannot be
-matched by the restrictive set of abstractions allowed in contemporary NN packages.
-
+paradigm, and provides DL researchers an extendable framework which is not
+matched by abstractions allowed in contemporary NN packages.
 
 Features
 --------
 
-Computational Graphs as S-Expressions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+PyTorch Computational Graphs as S-Expressions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Defining models using S-expressions allows for functional design, quick iterative
 refactoring, and manipulation of model code using macros. Here is a short example
 of defining a single layer feed forward neural network using MinoTauro and
 then training a generated model on dummy data:
 
-.. code-block :: hy
+.. code-block :: clojure
 
-  ; Requires
+  ;- Macros
   (require [mino.mu [*]]
            [mino.thread [*]]
            [hy.contrib.walk [let]])
 
-  ; Imports
+  ;- Imports
   (import torch
           [torch.nn.functional :as F]
           [torch.nn :as nn]
           [torch.optim [Adam]])
 
-  ;; Defines a Linear Transformation operation:
+  ;-- Defines a Linear Transformation operation
   (defmu LinearTransformation [x weights bias]
     (-> x (@ weights) (+ bias)))
 
-  ;; Defines a constructor for a Linear Transformation with Learnable Parameters
+  ;-- Defines a constructor for a Linear Transformation with learnable parameters
   (defn LearnableLinear [f-in f-out]
     (LinearTransformation
       :weights (-> (torch.empty (, f-in f-out))
@@ -66,46 +65,46 @@ then training a generated model on dummy data:
                    (.normal_ :mean 0 :std 1.0)
                    (nn.Parameter :requires_grad True))))
 
-  ;; Defines a Feed Forward operation:
+  ;-- Defines a Feed Forward operation
   (defmu FeedForward [x linear-to-hidden linear-to-output]
     (-> x
         linear-to-hidden
         torch.sigmoid
         linear-to-output))
 
-  ;; Define a constructor for a Neural Network with learnable layers.
+  ;-- Defines a constructor for a single-layer Neural Network with learnable mappings
   (defn NeuralNetwork [nb-inputs nb-hidden nb-outputs]
     (FeedForward
       :linear-to-hidden (LearnableLinear nb-inputs nb-hidden)
       :linear-to-output (LearnableLinear nb-hidden nb-outputs)))
 
-  ;; main -
+  ;--
   (defmain [&rest _]
 
     (print "Loading Model + Data...")
     (let [nb-inputs 10 nb-hidden 32 nb-outputs 1]
 
-      ; Define Model + Optimizer
+      ;- Defines Model + Optimizer
       (setv model (NeuralNetwork nb-inputs nb-hidden nb-outputs)
             optimizer (Adam (.parameters model) :lr 0.001 :weight_decay 1e-5))
 
-      ; Generate Dummy Data
+      ;- Generates Dummy Data
       (let [batch-size 100]
         (setv x (-> (torch.empty (, batch-size nb-inputs))
                     (.normal_ :mean 0 :std 1.0))
               y (torch.ones (, batch-size nb-outputs))))
 
-    ; Train
+    ;- Train
     (let [epochs 100]
       (print "Training...")
       (for [epoch (range epochs)]
 
-        ; Forward
+        ;- Forward
         (setv y-pred (model x))
         (setv loss (F.binary_cross_entropy_with_logits y-pred y))
         (print (.format "Epoch: {epoch} Loss: {loss}" :epoch epoch :loss loss))
 
-        ; Backward
+        ;- Backward
         (.zero_grad optimizer)
         (.backward loss)
         (.step optimizer))))
@@ -125,10 +124,9 @@ defines the ``forward-procedure``. ``components`` are typically ``torch.nn.Param
 
 Thus, defining a PyTorch module takes on the following form:
 
-.. code-block :: hy
+.. code-block :: clojure
 
   (defmu module-name [component-0 ... component-N] forward-procedure)
-
 
 While PyTorch's module system uses an object oriented approach, MinoTauro's abstractions allows
 for functional manipulation of tensor objects. MinoTauro abstracts the PyTorch ``Module`` into
@@ -141,27 +139,27 @@ Default ``components`` (or sub-modules in traditional PyTorch) can be binded to
 ``mu`` when creating a new object. If bound during initialization, the default ``components``
 will be used during the forward pass if not provided in the function call.
 
-As an example, the ``LearnableLinear`` function in the code example generates a new
+As an example, the ``LearnableLinear`` function in the above script generates a new
 ``LinearTransformation`` module with custom default-and-persistent tensors, ``weights``
 and ``bias``. If arguments ``weights`` or ``bias`` are not provided
 during the forward pass of ``LinearTransformation``, then these default values are used instead.
 
 We can view a representation of the computational graph by printing the model:
 
-.. code-block :: hy
+.. code-block :: clojure
 
   (print model)
 
-  ; Returns
+  ;- Returns
   """
   FeedForward(
-    ID: -G\uffff6
+    At: 0x10c5e3850
     C: [x linear-to-hidden linear-to-output]
     λ: (linear-to-output (torch.sigmoid (linear-to-hidden x)))
 
 
     (linear_to_hidden): LinearTransformation(
-      ID: -G\uffff4
+      At: 0x10c7b22d0
       C: [x weights bias]
       λ: (+ (@ x weights) bias)
 
@@ -170,7 +168,7 @@ We can view a representation of the computational graph by printing the model:
 
     )
     (linear_to_output): LinearTransformation(
-      ID: -G\uffff5
+      At: 0x1297e71d0
       C: [x weights bias]
       λ: (+ (@ x weights) bias)
 
@@ -181,18 +179,17 @@ We can view a representation of the computational graph by printing the model:
   )
   """
 
-
 Accessing and viewing any component of the model is simple and done through python's dot notation.
 This make exploring a model easy and intuitive:
 
-.. code-block :: hy
+.. code-block :: clojure
 
   (print model.linear-to-hidden)
 
-  ; Returns
+  ;- Returns
   """
   LinearTransformation(
-    ID: -G\uffff4
+    At: 0x10c7b22d0
     C: [x weights bias]
     λ: (+ (@ x weights) bias)
 
@@ -205,26 +202,26 @@ This make exploring a model easy and intuitive:
 Anonymous Mu Expressions (i.e. Anonymous PyTorch Modules)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Side effects make systems harder to debug and understand. The ``mu`` was designed to
-limit the ``Module`` to a formalized abstraction similar to lambda expressions. MinoTauro allows
+Side effects make systems more difficult to debug and understand. The ``mu`` was designed to
+reduce the ``Module`` to an abstraction similar to lambda expressions. MinoTauro allows
 for anonymous PyTorch ``Modules`` through ``mu``. For example, an anonymous Linear function
 can be defined as follows:
 
-.. code-block :: hy
+.. code-block :: clojure
 
-  ; Anonymous Linear
+  ;- Anonymous Linear
   (mu [x w b] (-> x (@ w) (+ b)))
 
-  ; Forward Propagate
+  ;- Forward Propagate
   ((mu [x w b] (-> x (@ w) (+ b))) my-x my-w my-b)
 
 
 MinoTauro's macro ``bind`` can be used to assign default values to components same as when creating
 a new object of a namespaced ``mu`` with ``defmu``. Using the Linear function as an example again:
 
-.. code-block :: hy
+.. code-block :: clojure
 
-  ; Anonymous Linear with default w and b
+  ;- Anonymous Linear with default w and b
   (bind (mu [x w b] (-> x (@ w) (+ b)))
     :w (-> (torch.empty (, f-in f-out))
            (.normal_ :mean 0 :std 1.0)
@@ -233,7 +230,7 @@ a new object of a namespaced ``mu`` with ``defmu``. Using the Linear function as
            (.normal_ :mean 0 :std 1.0)
            (Parameter :requires_grad True))))
 
-  ; Namespaced Linear with default w and b
+  ;- Namespaced Linear with default w and b
   (Linear
     :w (-> (torch.empty (, f-in f-out))
            (.normal_ :mean 0 :std 1.0)
@@ -242,31 +239,37 @@ a new object of a namespaced ``mu`` with ``defmu``. Using the Linear function as
            (.normal_ :mean 0 :std 1.0)
            (Parameter :requires_grad True))))
 
-Reverting Models to Expressions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Reverting Models to S-Expressions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-MinoTauro lets you take a model and revert it back to an S-expression using
-``hy.contrib.hy-repr``. The S-expression model code contains the mu expressions
-and parameter configurations of all nested components. Though the current
-implementation of this feature works best for models which are implemented as
-MinoTauro models, we are working on providing the functionality to revert any
-PyTorch module into a S-expression.
+MinoTauro lets you revert models defined as mu expressions back to S-Expressions using
+``hy.contrib.hy-repr``. The output model code contains mu expressions
+and parameter configurations for the parent module and all nested components.
 
-We believe having this capability will open new avenues for researching meta-learning
-on computational graphs and streamline the
-implementation of machine learning methods which perform expression manipulation
-such as genetic programming.
+.. note::
+  Though the current implementation (0.1.0) of model reversion works best for models which are implemented
+  exclusively with MinoTauro and ``torch.nn``, we are working on expanding the functionality to revert any
+  PyTorch module into a valid S-expression.
 
-An example of this feature on the previous ``FeedForwardNeuralNetwork`` model
+  The next update will work on reverting ``torch.jit`` scripts to S-Expressions to
+  help import module definitions of PyTorch models developed in native Python
+  to MinoTauro `mu-expressions`.
+
+We believe having this capability will open new avenues for research in meta-learning
+of computational graphs, and will streamline implementation of machine learning methods
+which perform expression manipulation such as genetic programming and Sequence-to-Sequence
+modeling.
+
+An example of this feature on the previously defined ``FeedForwardNeuralNetwork`` model
 is the following:
 
-.. code-block :: hy
+.. code-block :: clojure
 
-  ; Define Model
+  ;- Defines Model and Reverts Model To S-Expression String
   (setv model (NeuralNetwork 10 32 1))
   (print (hy-repr model))
 
-  ; Returns
+  ;- Returns
   "(bind (mu [x linear-to-hidden linear-to-output] (linear-to-output (torch.sigmoid (linear-to-hidden x))))
          :linear-to-hidden (bind (mu [x weights bias] (+ (@ x weights) bias))
                                  :weights (torch.nn.Parameter (torch.empty (, 10 32) :dtype torch.float32))
@@ -282,9 +285,19 @@ Advanced Expression Threading
 MinoTauro contains custom threading macros to help define more complex network
 architectures. Threading macros are common to other function-heavy lisp languages such as Clojure.
 Threading here refers to the practice of passing arguments through expression not concurrency.
-The simplest comes in the form of the thread first macro `->`, which inserts each expression into the
+The simplest comes in the form of the thread first macro ``->``, which inserts each expression into the
 next expression’s first argument place. The compliment of this macro which inserts the expressions
-into the last argument place is `->>`.
+into the last argument place is ``->>``.
+
+The following list lists the threading macros currently implemented
+in MinoTauro. For more detailed use case information, refer to documentation for
+``mino.thread``.
+
+- ``->`` , ``->>`` : Thread First/Last Macros
+- ``*->`` , ``*->`` : Broadcast Thread First/Last Macros
+- ``|->`` , ``|->>`` : Inline Thread First/Last Macros
+- ``=->`` , ``=->`` : Set Thread First/Last Macros
+- ``cond->`` , ``cond->>`` : Conditional Thread First/Last Macros
 
 Spec (Clojure-like Specifications For PyTorch)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -297,38 +310,38 @@ Here is an example of defining a data specification for the previous neural netw
 
 .. _spec: https://clojure.org/about/spec
 
-.. code-block :: hy
+.. code-block :: clojure
 
-  ; Imports
-  (import torch
-          [torch.nn.functional :as F]
-          [torch.nn :as nn]
-          [torch.optim [Adam]])
-
-  ; Requires
+  ;- Macros
   (require [mino.mu [*]]
            [mino.thread [*]]
            [mino.spec [*]]
            [hy.contrib.walk [let]])
 
-  ;; Defines PyTorch Object Specifications
+  ;- Imports
+  (import torch
+          [torch.nn.functional :as F]
+          [torch.nn :as nn]
+          [torch.optim [Adam]])
+
+  ;-- Defines PyTorch Object Specifications
   (spec/def :tensor (fn [x] (instance? torch.Tensor x))
             :learnable (fn [x] x.requires_grad)
             :rank1 (fn [x] (-> x .size len (= 1)))
             :rank2 (fn [x] (-> x .size len (= 2))))
 
-  ;; Linear Operation
+  ;-- Linear Operation
   (defmu LinearTransformation [x weights bias]
     (-> x (@ weights) (+ bias)))
 
-  ;; Define a Learnable LinearTransformation data specification:
-  ;; Weights and bias are contrained to ensure model is correctly configured.
-  ;; In this instance, weights must conform to Tensors with learnable gradients of ranks 2 and 1 respectively.
+  ;-- Defines a Learnable LinearTransformation data specification
+  ; Weights and bias are constrained to ensure model is correctly configured.
+  ; In this instance, weights must conform to Tensors with learnable gradients of ranks 2 and 1 respectively.
   (spec/def :LearnableLinear (spec/parameters weights (spec/and :tensor :learnable :rank2)
                                               bias    (spec/and :tensor :learnable :rank1)))
 
-  ;; Define a generator for the LearnableLinear Specification:
-  ;; Generators are lambda expressions which will return data that conforms to the specification.
+  ;-- Defines a generator for the LearnableLinear Specification
+  ; Generators are functions which return data that conforms to the specification.
   (spec/defgen :LearnableLinear [f-in f-out]
     (LinearTransformation :weights (-> (torch.empty (, f-in f-out))
                                        (.normal_ :mean 0 :std 1.0)
@@ -337,59 +350,85 @@ Here is an example of defining a data specification for the previous neural netw
                                        (.normal_ :mean 0 :std 1.0)
                                        (nn.Parameter :requires_grad True))))
 
-  ;; Feed Forward operation
+  ;-- Feed Forward Operation
   (defmu FeedForward [x linear-to-hidden linear-to-output]
     (-> x
         linear-to-hidden
         torch.sigmoid
         linear-to-output))
 
-  ;; Define FeedForwardNeuralNetwork Specification
+  ;-- Defines FeedForwardNeuralNetwork Specification
   (spec/def :FeedForwardNeuralNetwork (spec/modules linear-to-hidden :LearnableLinear
                                                     linear-to-output :LearnableLinear))
 
-  ;; Define FeedForwardNeuralNetwork Spec Generator
+  ;-- Defines FeedForwardNeuralNetwork Spec Generator
   (spec/defgen :FeedForwardNeuralNetwork [nb-inputs nb-hidden nb-outputs]
     (FeedForward :linear-to-hidden (spec/gen :LearnableLinear nb-inputs nb-hidden)
-                  :linear-to-output (spec/gen :LearnableLinear nb-hidden nb-outputs)))
+                 :linear-to-output (spec/gen :LearnableLinear nb-hidden nb-outputs)))
 
-  ;; main -
+  ;--
   (defmain [&rest _]
 
     (print "Loading Model + Data...")
     (let [nb-inputs 10 nb-hidden 32 nb-outputs 1]
 
-      ; Define Model + Optimizer
+      ;- Defines Model + Optimizer
       (setv model (spec/gen :FeedForwardNeuralNetwork nb-inputs nb-hidden nb-outputs)
             optimizer (Adam (.parameters model) :lr 0.001 :weight_decay 1e-5))
 
-      ; Generate Dummy Data
+      ;- Generates Dummy Data
       (let [batch-size 100]
         (setv x (-> (torch.empty (, batch-size nb-inputs))
                     (.normal_ :mean 0 :std 1.0))
               y (torch.ones (, batch-size nb-outputs)))))
 
-    ; Train
+    ;- Train
     (let [epochs 100]
       (print "Training...")
       (for [epoch (range epochs)]
 
-        ; Forward
+        ;- Forward
         (setv y-pred (model x))
         (setv loss (F.binary_cross_entropy_with_logits y-pred y))
         (print (.format "Epoch: {epoch} Loss: {loss}" :epoch epoch :loss loss))
 
-        ; Backward
+        ;- Backward
         (.zero_grad optimizer)
         (.backward loss)
         (.step optimizer))))
 
 The neural network example uses ``mino.spec`` to
 define valid configurations of the ``LearnableLinear`` and ``FeedForwardNeuralNetwork`` modules.
-These ``mino.spec`` definitions makes it simple and concise to test that modules
+These ``mino.spec`` definitions makes it simple to test that modules
 have valid components. If a generator is defined for a ``mino.spec``, then
 the generated data will be tested against its specification and fail when
 the data does not conform.
+
+
+Getting Started
+---------------
+
+You can install the latest stable version of MinoTauro (0.1.0) by running::
+
+$ pip3 install git+https://github.com/rz4/MinoTauro.git
+
+Jupyter Notebook Running MinoTauro
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you prefer to develop models in a Jupyter Notebook, you can
+try out **Calysto**, a Hy Kernel for Jupyter. The MinoTauro GitHub
+Repo contains a up to date version for Hy 0.19.0 and information
+on how to install it. Click here_ for more information.
+
+.. _here: https://github.com/rz4/MinoTauro#jupyter-notebook-setup
+
+Tutorials & API
+~~~~~~~~~~~~~~~
+
+We are starting to compile some tutorials which show how to use MinoTauro
+to build PyTorch models with ease. For more in depth explanations of
+each macro provided in MinoTauro, refer to the ``mino.mu``, ``mino.thread``
+and ``mino.spec`` APIs respectively.
 
 .. toctree::
  :maxdepth: 2

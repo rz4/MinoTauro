@@ -1,6 +1,27 @@
 mino
 =====================================
 
+The following pages contain API's for each module provided in MinoTauro
+including descriptions of the form and arguments of each macro, a descriptions
+of each macro's internal mechanics, and a code example using the macro. The three
+modules currently implemented in MinoTauro are:
+
+:``mino.mu``:
+  Module contains `mu-expression` definition macros used to build PyTorch
+  models with function like syntax. Common tensor manipulation utilities and tools
+  for reverting PyTorch models to S-Expressions are also defined in this module.
+
+:``mino.thread``:
+  Module contains expression threading macros used to build branching and
+  parallel computational graphs.
+
+:``mino.spec``:
+  Module contains macros used to define type predicate checks for data and functions.
+  Contains an assortment of macros to build predicates including macros to help
+  type check PyTorch modules. Module also includes macros to perform operations
+  using user defined specifications such as conformation checks, data generation,
+  and S-Expression search/refactoring.
+
 .. toctree::
    :maxdepth: 2
 

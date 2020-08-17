@@ -4,7 +4,7 @@ Updated: 8/7/20
 Module defines a specfication system for the MinoTauro developement environment.
 Inspired from clojure's spec, MinoTauro's spec includes many base operations from clojure.spec.alpha.
 
-;-- Design Principles 
+;-- Design Principles
 
 - Should function soley as a macro-imported system.
 - Should provide methods to specify PyTorch Objects.
@@ -23,15 +23,14 @@ To use macros, import using:
 ;- Imports
 (import hy [hy.contrib.hy-repr [hy-repr]])
 
-
-;;-----Spec Registry------
+;-----Spec Registry------
 
 ;--
 (defn _spec/data-registry []
   """ Access Data Specs Registry:
-  
+
   Returns:
-  
+
     (dict): namespace mapping of keywords to data predicate specifications.
   """
   (global data-spec-registry)
@@ -41,9 +40,9 @@ To use macros, import using:
 ;--
 (defn _spec/fun-registry []
   """ Access Function Spec Registry:
-  
+
   Returns:
-  
+
     (dict): namespace mapping of keywords to function predicate specifications.
   """
   (global fun-spec-registry)
@@ -53,9 +52,9 @@ To use macros, import using:
 ;--
 (defn _spec/gen-registry []
   """ Access Generator Spec Registry:
-  
+
   Returns:
-  
+
    (dict): namespace mapping of keywords to generator functions.
   """
   (global gen-spec-registry)
@@ -65,11 +64,11 @@ To use macros, import using:
 ;--
 (defn _spec/conform-registry [&optional [reset False]]
   """ Access Conform Spec Registry:
-  
+
   Returns:
-  
+
     (dict): namespace mapping of keywords to valid? results since last reset.
-  
+
   """
   (global conform-registry)
   (try (if reset
@@ -80,22 +79,22 @@ To use macros, import using:
 ;--
 (defn _spec/eval [spec data &rest fun-args]
   """ Evaulate Data Given Specification:
-  
-  Used to return specification predicate output while adding results to the 
-  conform-registry. If &rest arguments are provided, assume a functional 
+
+  Used to return specification predicate output while adding results to the
+  conform-registry. If &rest arguments are provided, assume a functional
   specification check and pass values as function inputs.
-  
+
   Args:
-  
-    spec (HyKeyword): 
+
+    spec (HyKeyword):
     data (Object):
-    fun-args (&rest Object): 
-    
+    fun-args (&rest Object):
+
   Returns:
-  
+
     out (bool):
-  
-  
+
+
   """
   (setv out (if (> (len fun-args) 0)
                 ((get (_spec/fun-registry) spec) data fun-args)
@@ -105,24 +104,24 @@ To use macros, import using:
                                             "value" data})
   out)
 
-;;-----Spec Definition------
+;-----Spec Definition------
 
 ;--
 (defmacro spec/def [&rest args]
   """ Define New Data Specifications Macro:
-  
+
   Takes in pairs of HyKeywords and predicate functions.
   Predicate functions can be constructed using specification macros provided
-  in the spec module or through lambda expressions. Macros will be expanded and 
+  in the spec module or through lambda expressions. Macros will be expanded and
   the output predicate functions are assigned to the HyKeyword.
-  
+
   Args:
-  
+
     args (&rest)
-    
+
   Returns:
-    
-    (HyExpression): 
+
+    (HyExpression):
   """
   ;- Get keyword/predicate pairs.
   (assert (even? (len args)) "Args must be paired. Found odd number of arguments.")
@@ -148,16 +147,16 @@ To use macros, import using:
 ;--
 (defmacro spec/defun [kw-namespace args returns]
   """ Define New Function Specification Macro:
-  
-  Creates a function test predicate assigned to a HyKeyword. The function test 
-  predicate is composed of a predicate evaluating the arguments of the function 
-  and a predicate evaluating the returned value of the function. These are the 
+
+  Creates a function test predicate assigned to a HyKeyword. The function test
+  predicate is composed of a predicate evaluating the arguments of the function
+  and a predicate evaluating the returned value of the function. These are the
   args and returns parameters respectively.
-  
+
   Args:
-  
+
   Returns:
-  
+
   """
   ;- Fetch Specifications
   (setv setter '(setv)
@@ -193,9 +192,9 @@ To use macros, import using:
 ;--
 (defmacro spec/defgen [kw-namespace args &rest body]
   """ Define New Generator For Data Specification Macro:
-  
+
   Args:
-  
+
   Returns:
   """
   ;- Assert Checks
@@ -211,16 +210,16 @@ To use macros, import using:
   `(do (import [mino.spec [_spec/gen-registry]])
        (assoc (_spec/gen-registry) ~kw-namespace (fn ~args ~@body))))
 
-;;-----Spec Construction-----
+;-----Spec Construction-----
 
 ;--
 (defmacro spec/nand [&rest specs]
   """NAND Predicate Composition Macro:
   Constructs a NAND logic operator predicate out of argument specifications.
   Can take in any number of legal specifications.
-  
+
   Args:
-  
+
   Returns:
   """
   (setv fetchers []
@@ -244,9 +243,9 @@ To use macros, import using:
   """AND Predicate Composition Macro:
   Constructs an AND logic operator predicate out of argument specifications.
   Can take in any number of specifications.
-  
+
   Args:
-  
+
   Returns:
   """
   (setv fetchers []
@@ -288,6 +287,7 @@ To use macros, import using:
        ~setter
        (fn [~var-x] (| ~@fetchers))))
 
+;--
 (defmacro spec/dict-of [keys vals]
   """Dictionary-Of Predicate Composition Macro:
   Constructs a predicate to check if data is a dictionary of specifications
@@ -317,7 +317,7 @@ To use macros, import using:
        (fn [~var] (and (not (some zero? (lfor ~var-x (.keys ~var) ~kfetcher)))
                        (not (some zero? (lfor ~var-x (.values ~var) ~vfetcher)))))))
 
-;; Collection-of Operator
+;-- Collection-of Operator
 (defmacro spec/coll-of [spec]
   """Collection-Of Predicate Composition Macro:
   Constructs a predicate to check if data is a collection of specifications
@@ -338,7 +338,7 @@ To use macros, import using:
        ~setter
        (fn [~var] (not (some zero? (lfor ~var-x ~var ~fetcher))))))
 
-;; Contains Keys Operator
+;-- Contains Keys Operator
 (defmacro spec/keys [&rest args]
   """Has-Keys Predicate Composition Macro:
   Constructs a predicate to check if data has contains key with value of specifications
@@ -369,7 +369,7 @@ To use macros, import using:
            (except [] (return False)))
          (and ~@fetchers))))
 
-;;------REGEX Spec Construction------
+;------REGEX Spec Construction------
 (defmacro spec/cat [&rest specs]
   (setv fetchers []
         setter '(setv)
@@ -386,12 +386,11 @@ To use macros, import using:
   (setv nb-specs (len fetchers))
   `(do (import [mino.spec [_spec/eval]])
        ~setter
-       (fn [~var-x] (and (= (len ~var-x) ~nb-specs) ~@fetchers))))
+       (fn [~var-x] (and (iterable? ~var-x) (= (len ~var-x) ~nb-specs) ~@fetchers))))
 
-;;------PyTorch Dependent Spec------
+;------PyTorch Dependent Spec------
 
-;; Define PyTorch Sub-Module Specifications
-; Returns False if data is not a PyTorch module.
+;-- Define PyTorch Sub-Module Specifications
 (defmacro spec/modules [&rest args]
   (setv args (partition args :n 2)
         fetchers []
@@ -417,8 +416,7 @@ To use macros, import using:
            (except [] (return False)))
          (and ~@fetchers))))
 
-;; Define PyTorch Sub-Parameters Specifications
-; Returns False if data is not a PyTorch module.
+;-- Define PyTorch Sub-Parameters Specifications
 (defmacro spec/parameters [&rest args]
   (setv args (partition args :n 2)
         fetchers []
@@ -445,9 +443,9 @@ To use macros, import using:
          (and ~@fetchers))))
 
 
-;;---Spec Operators---
+;-----Spec Operators-----
 
-;; Check if data is valid according to spec
+;-- Check if data is valid according to spec
 (defmacro spec/valid? [spec data]
   (setv spec (macroexpand spec)
         setter '(setv))
@@ -462,7 +460,7 @@ To use macros, import using:
        ~setter
        ~fetcher))
 
-;; Pass data if valid according to spec
+;-- Pass data if valid according to spec
 (defmacro spec/conform [spec data]
   (setv spec (macroexpand spec)
         setter '(setv))
@@ -486,7 +484,7 @@ To use macros, import using:
                                                            :v (get v "value"))))))
        ~data))
 
-;; Pass data if valid according to spec
+;-- Pass data if valid according to spec
 (defmacro spec/exercise [spec func &rest data]
   (assert (instance? HyKeyword spec)
     "Arg 1 must be a HyKeyword corresponding to a registered function Spec.")
@@ -504,7 +502,7 @@ To use macros, import using:
                                                            :v (get v "value"))))))
        (~func ~@data)))
 
-;; Return dictionary of valid? results on data according to spec
+;-- Return dictionary of valid? results on data according to spec
 (defmacro spec/explain [spec data]
   (setv spec (macroexpand spec)
         setter '(setv))
@@ -521,14 +519,14 @@ To use macros, import using:
        ~expr
        (_spec/conform-registry)))
 
-;;------Spec Assertions------
+;-------Spec Assertions------
 
-;; Check if Spec Asserts are enabled
+;-- Check if Spec Asserts are enabled
 (defn _spec/check-asserts? []
   (global check-asserts-flag)
   (try check-asserts-flag (except [] True)))
 
-;; Specification Assert
+;-- Specification Assert
 (defmacro spec/assert [spec data]
   (setv spec (macroexpand spec)
         setter '(setv))
@@ -552,14 +550,36 @@ To use macros, import using:
                                                                       "Failed")
                                                                :v (get v "value"))))))))))
 
-;; Enable or Disable Spec Asserts
+;-- Enable or Disable Spec Asserts
 (defmacro spec/check-asserts [flag]
   `(do (global check-asserts-flag)
        (setv check-asserts-flag ~flag)))
 
+;-----Spec Search & Replace-----
+
+;--
+(defmacro spec/search [spec data]
+  (macroexpand
+    `(do (require [mino.spec [spec/valid?]]
+                  [hy.contrib.walk [let]])
+         (import [hy.contrib.walk [prewalk]])
+         (let [matches []]
+           (prewalk (fn [x] (when (spec/valid? ~spec x) (.append matches x)) x) (quote ~data))
+           (defn _matches [] (for [match matches] (yield match)))
+           (_matches)))))
+
+;--
+(defmacro spec/replace [spec data replacement]
+  (macroexpand
+    `(do (require [mino.spec [spec/valid?]]
+                  [hy.contrib.walk [let]])
+         (import [hy.contrib.walk [postwalk]])
+         (let [matches []]
+           (postwalk (fn [x] (if (spec/valid? ~spec x) (quote ~replacement) x)) (quote ~data))))))
+
 ;-----Specification Generation-----
 
-;-- 
+;--
 (defmacro spec/gen [spec &rest args]
   (setv var-env-gen (gensym)
         var-env-data (gensym)

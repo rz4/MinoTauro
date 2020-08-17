@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>MinoTauro API &mdash; MinoTauro 0.0.9 documentation</title>
+  <title>MinoTauro (0.1.0) API &mdash; MinoTauro 0.0.9 documentation</title>
   
 
   
@@ -37,7 +37,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Overview" href="overview.html" /> 
+    <link rel="next" title="overview" href="overview.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -86,8 +86,8 @@
             
             
               <ul>
-<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/index.html">tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="mino/index.html">mino</a></li>
 </ul>
 
@@ -135,7 +135,7 @@
     
       <li><a href="#" class="icon icon-home"></a> &raquo;</li>
         
-      <li>MinoTauro API</li>
+      <li>MinoTauro (0.1.0) API</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -154,8 +154,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="minotauro-api">
-<h1>MinoTauro API<a class="headerlink" href="#minotauro-api" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="minotauro-0-1-0-api">
+<h1>MinoTauro (0.1.0) API<a class="headerlink" href="#minotauro-0-1-0-api" title="Permalink to this headline">¶</a></h1>
 <dl class="field-list simple">
 <dt class="field-odd">Source</dt>
 <dd class="field-odd"><p><a class="reference external" href="https://github.com/rz4/MinoTauro">https://github.com/rz4/MinoTauro</a></p>
@@ -166,33 +166,40 @@ for use in rapid bottom-up development of differential programs as well as
 for experiments in deep learning meta-programming.</p>
 <p>To install the latest stable release of MinoTauro, just use the command
 <code class="docutils literal notranslate"><span class="pre">pip3</span> <span class="pre">install</span> <span class="pre">git+https://github.com/rz4/MinoTauro</span></code>. Then you can start using
-all of MinoTauro’s features by importing it’s macros with:</p>
-<div class="highlight-hy notranslate"><div class="highlight"><pre><span></span><span class="o">;</span> <span class="n">Required</span> <span class="n">Macros</span>
-<span class="o">(</span><span class="n">require</span> <span class="o">[</span><span class="n">mino</span><span class="o">.</span><span class="na">mu</span> <span class="o">[*]]</span>
-         <span class="o">[</span><span class="n">mino</span><span class="o">.</span><span class="na">thread</span> <span class="o">[*]]</span>
-         <span class="o">[</span><span class="n">mino</span><span class="o">.</span><span class="na">spec</span> <span class="o">[*]])</span>
+all of MinoTauro’s features by importing the macros with:</p>
+<div class="highlight-clojure notranslate"><div class="highlight"><pre><span></span><span class="c1">;- Import MinoTauro Macros</span>
+<span class="p">(</span><span class="nf">require</span> <span class="p">[</span><span class="nv">mino.mu</span> <span class="p">[</span><span class="nv">*</span><span class="p">]]</span>
+         <span class="p">[</span><span class="nv">mino.thread</span> <span class="p">[</span><span class="nv">*</span><span class="p">]]</span>
+         <span class="p">[</span><span class="nv">mino.spec</span> <span class="p">[</span><span class="nv">*</span><span class="p">]])</span>
 </pre></div>
 </div>
 <p>You’re all set to start building PyTorch models with MinoTauro!</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">overview</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#motivation">Motivation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#features">Features</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="overview.html#computational-graphs-as-s-expressions">Computational Graphs as S-Expressions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#pytorch-computational-graphs-as-s-expressions">PyTorch Computational Graphs as S-Expressions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="overview.html#anonymous-mu-expressions-i-e-anonymous-pytorch-modules">Anonymous Mu Expressions (i.e. Anonymous PyTorch Modules)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="overview.html#reverting-models-to-expressions">Reverting Models to Expressions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#reverting-models-to-s-expressions">Reverting Models to S-Expressions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="overview.html#advanced-expression-threading">Advanced Expression Threading</a></li>
 <li class="toctree-l3"><a class="reference internal" href="overview.html#spec-clojure-like-specifications-for-pytorch">Spec (Clojure-like Specifications For PyTorch)</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#getting-started">Getting Started</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#jupyter-notebook-running-minotauro">Jupyter Notebook Running MinoTauro</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#tutorials-api">Tutorials &amp; API</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/index.html">Tutorials</a><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/index.html">tutorials</a><ul class="simple">
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="mino/index.html">mino</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="mino/mu/index.html">mino.mu</a><ul class="simple">
+<li class="toctree-l2"><a class="reference internal" href="mino/mu/index.html">mino.mu</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="mino/mu/index.html#defmu"><code class="docutils literal notranslate"><span class="pre">defmu</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="mino/mu/index.html#mu"><code class="docutils literal notranslate"><span class="pre">mu</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="mino/thread/index.html">mino.thread</a><ul class="simple">
@@ -215,7 +222,7 @@ all of MinoTauro’s features by importing it’s macros with:</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="overview.html" class="btn btn-neutral float-right" title="Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="overview.html" class="btn btn-neutral float-right" title="overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
     </div>
